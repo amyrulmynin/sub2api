@@ -8,8 +8,11 @@ import (
 )
 
 func paymentProviderConfigCurrency(providerKey string, cfg map[string]string) string {
+	if strings.TrimSpace(providerKey) == payment.TypeMudahPay {
+		return "MYR"
+	}
 	switch strings.TrimSpace(providerKey) {
-	case payment.TypeStripe, payment.TypeAirwallex:
+	case payment.TypeStripe, payment.TypeAirwallex, payment.TypeMudahPay:
 		currency, err := payment.NormalizePaymentCurrency(cfg["currency"])
 		if err == nil {
 			return currency

@@ -67,6 +67,12 @@ func (h *PaymentWebhookHandler) AirwallexWebhook(c *gin.Context) {
 	h.handleNotify(c, payment.TypeAirwallex)
 }
 
+// MudahPayWebhook handles MudahPay DuitNow QR webhook events.
+// POST /api/v1/payment/webhook/mudahpay
+func (h *PaymentWebhookHandler) MudahPayWebhook(c *gin.Context) {
+	h.handleNotify(c, payment.TypeMudahPay)
+}
+
 // handleNotify is the shared logic for all provider webhook handlers.
 func (h *PaymentWebhookHandler) handleNotify(c *gin.Context, providerKey string) {
 	var rawBody string
@@ -163,6 +169,15 @@ func extractOutTradeNo(rawBody, providerKey string) string {
 		}
 		if err := json.Unmarshal([]byte(rawBody), &payload); err == nil {
 			return strings.TrimSpace(payload.Data.Object.MerchantOrderID)
+		}
+	case payment.TypeMudahPay:
+		var payload struct {
+			Data struct {
+				Reference string `json:"reference"`
+			} `json:"data"`
+		}
+		if err := json.Unmarshal([]byte(rawBody), &payload); err == nil {
+			return strings.TrimSpace(payload.Data.Reference)
 		}
 	}
 	// For other providers (Stripe, Alipay direct, WxPay direct), the registry

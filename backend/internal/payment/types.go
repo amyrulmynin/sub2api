@@ -18,6 +18,7 @@ const (
 	TypeLink         PaymentType = "link"
 	TypeEasyPay      PaymentType = "easypay"
 	TypeAirwallex    PaymentType = "airwallex"
+	TypeMudahPay     PaymentType = "mudahpay"
 )
 
 // Order status constants shared across payment and service layers.
@@ -147,6 +148,7 @@ type CreatePaymentResponse struct {
 	QRCode       string                  // QR code content for scanning
 	ClientSecret string                  // Stripe PaymentIntent 客户端密钥
 	IntentID     string                  // 前端 SDK 需要的服务商支付意图 ID
+	PayAmount    float64                 // Final amount charged by provider, e.g. MudahPay unique amount
 	Currency     string                  // 服务商支付币种
 	CountryCode  string                  // 服务商收银台国家/地区代码
 	PaymentEnv   string                  // 服务商前端环境标识

@@ -25,6 +25,7 @@ Sub2API has a built-in payment system that enables user self-service top-up with
 | **Alipay (Direct)** | Desktop QR code, mobile Alipay redirect | Direct integration with Alipay Open Platform, returning desktop QR codes and mobile WAP/app launch links |
 | **WeChat Pay (Direct)** | Native QR, H5, MP/JSAPI Pay | Direct integration with WeChat Pay APIv3 with environment-aware routing |
 | **Stripe** | Card, Alipay, WeChat Pay, Link, etc. | International payments, multi-currency support |
+| **MudahPay** | DuitNow QR | Malaysia MYR payments via Dynamic DuitNow QR with automatic webhook reconciliation |
 
 > Alipay/WeChat Pay direct and EasyPay can both exist as backend provider instances, but the frontend always exposes only two visible buttons: `Alipay` and `WeChat Pay`. Admins choose exactly one source for each visible method: direct or EasyPay. Direct channels connect to payment APIs directly with lower fees; EasyPay aggregates through third-party platforms with easier setup.
 
@@ -154,6 +155,18 @@ International payment platform supporting multiple payment methods and currencie
 | **Publishable Key** | Stripe publishable key (`pk_live_...` or `pk_test_...`) | Yes |
 | **Webhook Secret** | Stripe Webhook signing secret (`whsec_...`) | Yes |
 
+### MudahPay
+
+MudahPay creates Dynamic DuitNow QR transactions in **MYR/RM**. The gateway may return a unique final amount such as `RM10.01`; users must pay that exact amount for automatic reconciliation.
+
+| Parameter | Description | Required |
+|-----------|-------------|----------|
+| **API Key** | MudahPay API key (`x-api-key`) | Yes |
+| **Webhook Secret** | MudahPay webhook signing secret (`whsec_...`) | Yes |
+| **API Base URL** | MudahPay API base URL, default `https://api.mudahpay.my.id` | No |
+| **Currency** | Fixed to `MYR` | Yes |
+| **Expires In** | QR expiry in seconds, default `1800` | No |
+
 ---
 
 ## Provider Instance Management
@@ -195,6 +208,7 @@ When adding a provider, the system auto-generates callback URLs from your site d
 | **Alipay (Direct)** | `https://your-domain.com/api/v1/payment/webhook/alipay` |
 | **WeChat Pay (Direct)** | `https://your-domain.com/api/v1/payment/webhook/wxpay` |
 | **Stripe** | `https://your-domain.com/api/v1/payment/webhook/stripe` |
+| **MudahPay** | `https://your-domain.com/api/v1/payment/webhook/mudahpay` |
 
 > Replace `your-domain.com` with your actual domain. For EasyPay / Alipay / WeChat Pay, the callback URL is auto-filled when adding the provider — no manual configuration needed.
 

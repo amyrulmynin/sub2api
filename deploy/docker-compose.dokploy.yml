@@ -4,10 +4,8 @@ services:
     pull_policy: always
     restart: unless-stopped
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - postgres
+      - redis
     environment:
       AUTO_SETUP: "true"
       SERVER_HOST: 0.0.0.0
@@ -22,7 +20,7 @@ services:
       DATABASE_SSLMODE: disable
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_PASSWORD: ""
       REDIS_DB: 0
       ADMIN_EMAIL: ${ADMIN_EMAIL}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
@@ -35,12 +33,6 @@ services:
       - sub2api_data:/app/data
     expose:
       - "8080"
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-T", "5", "-O", "/dev/null", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
 
   postgres:
     image: postgres:17-alpine
@@ -52,11 +44,6 @@ services:
       TZ: Asia/Kuala_Lumpur
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sub2api -d sub2api"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
 
   redis:
     image: redis:7-alpine
@@ -64,13 +51,6 @@ services:
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
 
 volumes:
   sub2api_data:

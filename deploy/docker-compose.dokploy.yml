@@ -43,7 +43,7 @@ services:
       start_period: 30s
 
   postgres:
-    image: postgres:18-alpine
+    image: postgres:17-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: sub2api
@@ -59,7 +59,7 @@ services:
       retries: 10
 
   redis:
-    image: redis:8-alpine
+    image: redis:7-alpine
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
     volumes:

@@ -1,11 +1,7 @@
 services:
   sub2api:
-    build:
-      context: ..
-      dockerfile: Dockerfile
-      args:
-        GOPROXY: https://proxy.golang.org,direct
-        GOSUMDB: sum.golang.org
+    image: ghcr.io/amyrulmynin/sub2api:my-custom
+    pull_policy: always
     restart: unless-stopped
     depends_on:
       postgres:

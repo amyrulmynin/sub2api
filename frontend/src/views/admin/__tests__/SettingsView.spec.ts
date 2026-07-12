@@ -106,6 +106,7 @@ vi.mock("@/composables/useClipboard", () => ({
 
 vi.mock("@/utils/apiError", () => ({
   extractApiErrorMessage: () => "error",
+  extractI18nErrorMessage: () => "error",
 }));
 
 vi.mock("vue-i18n", async () => {
@@ -516,6 +517,28 @@ async function openUsersTab(wrapper: ReturnType<typeof mountView>) {
   await usersTabButton?.trigger("click");
   await flushPromises();
 }
+
+async function openEmailTab(wrapper: ReturnType<typeof mountView>) {
+  const emailTabButton = wrapper
+    .findAll("button")
+    .find((node) => node.text().includes("admin.settings.tabs.email"));
+
+  expect(emailTabButton).toBeDefined();
+  await emailTabButton?.trigger("click");
+  await flushPromises();
+}
+
+describe("admin SettingsView product currency", () => {
+  it("renders balance notification amount in MYR", async () => {
+    getSettings.mockResolvedValue({ ...baseSettingsResponse, balance_low_notify_enabled: true });
+    const wrapper = mountView();
+    await flushPromises();
+    await openEmailTab(wrapper);
+
+    expect(wrapper.text()).toContain("RM");
+    expect(wrapper.text()).not.toContain("$");
+  });
+});
 
 describe("admin SettingsView payment visible method controls", () => {
   beforeEach(() => {

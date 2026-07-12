@@ -164,10 +164,11 @@ describe('admin UsageTable tooltip', () => {
     expect(text).toContain('Account rate')
     expect(text).toContain('User billed')
     expect(text).toContain('Account billed')
-    expect(text).toContain('$0.092883')
-    expect(text).toContain('$5.0000 / 1M tokens')
-    expect(text).toContain('$30.0000 / 1M tokens')
-    expect(text).toContain('$0.069568')
+    expect(text).toContain('RM0.09')
+    expect(text).toContain('RM5.0000 / 1M tokens')
+    expect(text).toContain('RM30.0000 / 1M tokens')
+    expect(text).toContain('RM0.07')
+    expect(text).not.toContain('$0.09')
   })
 
   it('shows requested and upstream models separately for admin rows', () => {

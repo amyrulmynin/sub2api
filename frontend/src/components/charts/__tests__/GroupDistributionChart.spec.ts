@@ -110,7 +110,8 @@ describe('GroupDistributionChart', () => {
       raw: 0.9,
       dataset: { data: [0.9, 0.1] },
     })
-    expect(label).toBe('group-b: $0.900 (90.0%)')
+    expect(label).toBe('group-b: RM0.90 (90.0%)')
+    expect(wrapper.text()).not.toContain('$0.90')
   })
 
   it('can hide account cost for user usage stats without account_cost', () => {

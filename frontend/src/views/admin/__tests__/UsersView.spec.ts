@@ -60,7 +60,7 @@ const createAdminUser = (overrides: Partial<AdminUser> = {}): AdminUser => ({
   username: 'scoped-user',
   email: 'scoped@example.com',
   role: 'user',
-  balance: 0,
+  balance: 10,
   concurrency: 1,
   status: 'active',
   allowed_groups: [],
@@ -88,6 +88,7 @@ const DataTableStub = {
         <slot :name="'header-' + col.key" :column="col" />
       </template>
       <div v-for="row in data" :key="row.id">
+        <slot name="cell-balance" :value="row.balance" :row="row" />
         <slot name="cell-last_used_at" :value="row.last_used_at" :row="row" />
       </div>
     </div>
@@ -154,6 +155,8 @@ describe('admin UsersView', () => {
     await flushPromises()
 
     const columns = wrapper.get('[data-test="columns"]').text()
+    expect(wrapper.text()).toContain('RM10.00')
+    expect(wrapper.text()).not.toContain('$10.00')
     const visibleColumns = columns.split(',')
     expect(visibleColumns.slice(-4, -1)).toEqual(['last_active_at', 'last_used_at', 'created_at'])
     expect(visibleColumns).not.toContain('last_login_at')

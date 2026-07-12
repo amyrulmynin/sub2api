@@ -37,9 +37,9 @@ const stats = {
   total_cache_creation_tokens: 12,
   total_cache_read_tokens: 22,
   total_tokens: 184,
-  total_cost: 0.001,
-  total_actual_cost: 0.001,
-  total_account_cost: 0.001,
+  total_cost: 10,
+  total_actual_cost: 10,
+  total_account_cost: 10,
   average_duration_ms: 250,
 }
 
@@ -63,5 +63,7 @@ describe('UsageStatsCards', () => {
     expect(text).toContain('12')
     expect(text).toContain('Cache Read')
     expect(text).toContain('22')
+    expect(text).toContain('RM10.00')
+    expect(text).not.toContain('$10.00')
   })
 })

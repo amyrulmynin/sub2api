@@ -124,7 +124,8 @@ describe('ModelDistributionChart', () => {
       raw: 1.4,
       dataset: { data: [1.4, 0.2] },
     })
-    expect(label).toBe('model-b: $1.40 (87.5%)')
+    expect(label).toBe('model-b: RM1.40 (87.5%)')
+    expect(wrapper.text()).not.toContain('$1.40')
   })
 
   it('can hide account cost for user usage stats without account_cost', () => {
@@ -185,6 +186,7 @@ describe('ModelDistributionChart', () => {
     expect(rows[2].text()).toContain('Others')
     expect(rows[2].text()).toContain('4')
     expect(rows[2].text()).toContain('400')
-    expect(rows[2].text()).toContain('$10.00')
+    expect(rows[2].text()).toContain('RM10.00')
+    expect(rows[2].text()).not.toContain('$10.00')
   })
 })

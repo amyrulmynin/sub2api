@@ -22,6 +22,21 @@ describe('UsageProgressBar', () => {
     vi.useRealTimers()
   })
 
+  it('renders account and user costs in MYR', () => {
+    const wrapper = mount(UsageProgressBar, {
+      props: {
+        label: '5h',
+        utilization: 10,
+        color: 'indigo',
+        windowStats: { requests: 1, tokens: 10, cost: 10, standard_cost: 10, user_cost: 10 },
+      },
+    })
+
+    expect(wrapper.text()).toContain('A RM10.00')
+    expect(wrapper.text()).toContain('U RM10.00')
+    expect(wrapper.text()).not.toContain('$10.00')
+  })
+
   it('showNowWhenIdle=true 且利用率为 0 时显示“现在”', () => {
     const wrapper = mount(UsageProgressBar, {
       props: {

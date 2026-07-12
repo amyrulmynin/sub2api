@@ -35,6 +35,7 @@ import {
 import { Line } from 'vue-chartjs'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import type { TrendDataPoint } from '@/types'
+import { formatCurrency } from '@/utils/format'
 
 ChartJS.register(
   CategoryScale,
@@ -155,7 +156,7 @@ const lineOptions = computed(() => ({
           const dataIndex = tooltipItems[0]?.dataIndex
           if (dataIndex !== undefined && props.trendData[dataIndex]) {
             const data = props.trendData[dataIndex]
-            return `Actual: $${formatCost(data.actual_cost)} | Standard: $${formatCost(data.cost)}`
+            return `Actual: ${formatProductCost(data.actual_cost)} | Standard: ${formatProductCost(data.cost)}`
           }
           return ''
         }
@@ -225,4 +226,7 @@ const formatCost = (value: number): string => {
   }
   return value.toFixed(4)
 }
+
+const formatProductCost = (value: number): string =>
+  value >= 1000 ? `RM${formatCost(value)}` : formatCurrency(value)
 </script>

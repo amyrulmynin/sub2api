@@ -27,7 +27,7 @@ const item = (id: number, tokens: number) => ({
   output_tokens: 0,
   cache_tokens: 0,
   total_tokens: tokens,
-  actual_cost: 0.5,
+  actual_cost: 10,
 })
 
 const mountRanking = (props: Record<string, unknown> = {}) =>
@@ -62,6 +62,8 @@ describe('UserTokenRanking', () => {
 
     const rows = wrapper.findAll('tbody tr')
     expect(rows).toHaveLength(2)
+    expect(rows[0].text()).toContain('RM10.00')
+    expect(rows[0].text()).not.toContain('$10.00')
 
     await rows[0].trigger('click')
     expect(wrapper.emitted('select-user')![0]).toEqual([1, 'u1@test.com'])

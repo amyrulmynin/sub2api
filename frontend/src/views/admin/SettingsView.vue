@@ -7132,7 +7132,7 @@
                 <div class="relative">
                   <span
                     class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                    >$</span
+                    >{{ PRODUCT_CURRENCY_SYMBOL }}</span
                   >
                   <input
                     v-model.number="form.balance_low_notify_threshold"
@@ -7371,6 +7371,7 @@ import { extractApiErrorMessage, extractI18nErrorMessage } from "@/utils/apiErro
 import { useAppStore } from "@/stores";
 import { useAdminSettingsStore } from "@/stores/adminSettings";
 import { normalizeVisibleMethod } from "@/components/payment/paymentFlow";
+import { PRODUCT_CURRENCY_SYMBOL } from "@/utils/format";
 import {
   isRegistrationEmailSuffixDomainValid,
   normalizeRegistrationEmailSuffixDomain,

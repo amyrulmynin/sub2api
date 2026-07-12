@@ -370,14 +370,14 @@
               {{ formatWindowTokens(grokLocalUsage) }}
             </span>
             <span class="rounded bg-gray-100 px-1.5 py-0.5 dark:bg-gray-800" :title="t('usage.accountBilled')">
-              A ${{ formatWindowCost(grokLocalUsage) }}
+              A {{ formatCurrency(grokLocalUsage.cost) }}
             </span>
             <span
               v-if="grokLocalUsage.user_cost != null"
               class="rounded bg-gray-100 px-1.5 py-0.5 dark:bg-gray-800"
               :title="t('usage.userBilled')"
             >
-              U ${{ formatWindowUserCost(grokLocalUsage) }}
+              U {{ formatCurrency(grokLocalUsage.user_cost) }}
             </span>
           </div>
         </div>
@@ -471,14 +471,14 @@
               {{ formatKeyTokens }}
             </span>
             <span class="rounded bg-gray-100 px-1.5 py-0.5 dark:bg-gray-800" :title="t('usage.accountBilled')">
-              A ${{ formatKeyCost }}
+              A {{ formatCurrency(todayStats?.cost) }}
             </span>
             <span
               v-if="todayStats.user_cost != null"
               class="rounded bg-gray-100 px-1.5 py-0.5 dark:bg-gray-800"
               :title="t('usage.userBilled')"
             >
-              U ${{ formatKeyUserCost }}
+              U {{ formatCurrency(todayStats?.user_cost) }}
             </span>
           </div>
         </div>
@@ -547,14 +547,14 @@
             {{ formatKeyTokens }}
           </span>
           <span class="rounded bg-gray-100 px-1.5 py-0.5 dark:bg-gray-800" :title="t('usage.accountBilled')">
-            A ${{ formatKeyCost }}
+            A {{ formatCurrency(todayStats?.cost) }}
           </span>
           <span
             v-if="todayStats.user_cost != null"
             class="rounded bg-gray-100 px-1.5 py-0.5 dark:bg-gray-800"
             :title="t('usage.userBilled')"
           >
-            U ${{ formatKeyUserCost }}
+            U {{ formatCurrency(todayStats?.user_cost) }}
           </span>
         </div>
       </div>
@@ -603,7 +603,7 @@ import { adminAPI } from '@/api/admin'
 import type { Account, AccountUsageInfo, GeminiCredentials, WindowStats } from '@/types'
 import { buildOpenAIUsageRefreshKey } from '@/utils/accountUsageRefresh'
 import { enqueueUsageRequest } from '@/utils/usageLoadQueue'
-import { formatCompactNumber, formatRelativeTime } from '@/utils/format'
+import { formatCompactNumber, formatCurrency, formatRelativeTime } from '@/utils/format'
 import UsageProgressBar from './UsageProgressBar.vue'
 import AccountQuotaInfo from './AccountQuotaInfo.vue'
 import OpenAIQuotaResetCell from './OpenAIQuotaResetCell.vue'
@@ -1093,8 +1093,6 @@ const grokRetryAfterLabel = computed(() => {
 
 const formatWindowRequests = (stats: WindowStats) => formatCompactNumber(stats.requests, { allowBillions: false })
 const formatWindowTokens = (stats: WindowStats) => formatCompactNumber(stats.tokens)
-const formatWindowCost = (stats: WindowStats) => stats.cost.toFixed(2)
-const formatWindowUserCost = (stats: WindowStats) => (stats.user_cost ?? 0).toFixed(2)
 
 // 账户类型显示标签
 const antigravityTierLabel = computed(() => {
@@ -1356,16 +1354,6 @@ const formatKeyRequests = computed(() => {
 const formatKeyTokens = computed(() => {
   if (!props.todayStats) return ''
   return formatCompactNumber(props.todayStats.tokens)
-})
-
-const formatKeyCost = computed(() => {
-  if (!props.todayStats) return '0.00'
-  return props.todayStats.cost.toFixed(2)
-})
-
-const formatKeyUserCost = computed(() => {
-  if (!props.todayStats || props.todayStats.user_cost == null) return '0.00'
-  return props.todayStats.user_cost.toFixed(2)
 })
 
 onMounted(() => {

@@ -100,9 +100,12 @@
     <!-- ═══ Active States: QR or Popup waiting ═══ -->
 
     <!-- QR Code Mode -->
-    <template v-else-if="qrUrl && !showExactAmountDialog">
+    <template v-else-if="showExactAmountDialog"></template>
+
+    <!-- QR Code Mode -->
+    <template v-else-if="qrUrl">
       <div
-        v-if="isMudahPay && hasValidExactAmount"
+        v-if="isMudahPay && hasValidExactAmount && props.exactAmountAcknowledged === true"
         role="alert"
         class="w-full min-w-0 rounded-xl border border-amber-400 bg-amber-50 p-4 text-center dark:border-amber-500 dark:bg-amber-950/30"
       >
@@ -215,6 +218,8 @@ const qrUrl = ref('')
 const remainingSeconds = ref(0)
 const cancelling = ref(false)
 const paidOrder = ref<PaymentOrder | null>(null)
+// Terminal outcome: null = still active, 'success' | 'cancelled' | 'expired'
+const outcome = ref<PaymentOutcome | null>(null)
 const isMudahPay = computed(() => props.paymentType.trim().toLowerCase() === 'mudahpay')
 const hasValidExactAmount = computed(() => (
   typeof props.payAmount === 'number'
@@ -222,7 +227,10 @@ const hasValidExactAmount = computed(() => (
   && props.payAmount > 0
 ))
 const showExactAmountDialog = computed(() => (
-  isMudahPay.value && hasValidExactAmount.value && props.exactAmountAcknowledged !== true
+  !outcome.value
+  && isMudahPay.value
+  && hasValidExactAmount.value
+  && props.exactAmountAcknowledged !== true
 ))
 const amountDiffers = computed(() => (
   typeof props.amount === 'number'
@@ -244,9 +252,6 @@ const localeCode = computed(() => {
   }
   return undefined
 })
-
-// Terminal outcome: null = still active, 'success' | 'cancelled' | 'expired'
-const outcome = ref<PaymentOutcome | null>(null)
 
 let pollTimer: ReturnType<typeof setInterval> | null = null
 let countdownTimer: ReturnType<typeof setInterval> | null = null

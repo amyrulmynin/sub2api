@@ -171,7 +171,7 @@ describe('PaymentStatusPanel', () => {
 
   it('blocks MudahPay QR until exact amount is acknowledged', async () => {
     const wrapper = mount(PaymentStatusPanel, {
-      props: exactAmountProps,
+      props: { ...exactAmountProps, payUrl: 'https://pay.example.com/session/42' },
       attachTo: document.body,
       global: { stubs: { Icon: true, teleport: true } },
     })
@@ -183,11 +183,22 @@ describe('PaymentStatusPanel', () => {
     expect(wrapper.text()).toMatch(/RM\s?10\.00/)
     expect(wrapper.find('canvas').exists()).toBe(false)
     expect(toCanvas).not.toHaveBeenCalled()
+    expect(wrapper.text()).not.toContain('payment.qr.payInNewWindowHint')
+    expect(wrapper.text()).not.toContain('payment.qr.openPayWindow')
+    expect(wrapper.text()).not.toContain('payment.qr.cancelOrder')
 
     const acknowledgeButton = wrapper.get('[data-test="acknowledge-exact-amount"]')
     expect(document.activeElement).toBe(acknowledgeButton.element)
     await acknowledgeButton.trigger('click')
     expect(wrapper.emitted('exactAmountAcknowledged')).toEqual([[42]])
+
+    await wrapper.setProps({ exactAmountAcknowledged: true })
+    await flushPromises()
+
+    expect(wrapper.find('.modal-overlay').exists()).toBe(false)
+    expect(wrapper.find('canvas').exists()).toBe(true)
+    expect(toCanvas).toHaveBeenCalled()
+    expect(wrapper.get('[role="alert"]').text()).toMatch(/RM\s?10\.01/)
 
     wrapper.unmount()
   })
@@ -209,16 +220,42 @@ describe('PaymentStatusPanel', () => {
     expect(toCanvas).toHaveBeenCalled()
   })
 
-  it('shows the exact amount but omits the do-not-pay line when cent amounts match', async () => {
+  it('uses the equal-amount persistent warning after acknowledgement', async () => {
     const wrapper = mount(PaymentStatusPanel, {
-      props: { ...exactAmountProps, amount: 10.004, payAmount: 10.001 },
+      props: {
+        ...exactAmountProps,
+        amount: 10.004,
+        payAmount: 10.001,
+        exactAmountAcknowledged: true,
+      },
       global: { stubs: { Icon: true, teleport: true } },
     })
 
     await flushPromises()
 
-    expect(wrapper.text()).toMatch(/RM\s?10\.00/)
-    expect(wrapper.text()).not.toContain('payment.qr.exactAmountDoNotPay')
+    const warning = wrapper.get('[role="alert"]')
+    expect(warning.text()).toContain('payment.qr.exactAmountCheck')
+    expect(warning.text()).not.toContain('payment.qr.exactAmountNotCheck')
+  })
+
+  it('closes the exact amount gate when payment becomes terminal before acknowledgement', async () => {
+    pollOrderStatus.mockResolvedValue(orderFactory('COMPLETED'))
+
+    const wrapper = mount(PaymentStatusPanel, {
+      props: exactAmountProps,
+      global: { stubs: { Icon: true, teleport: true } },
+    })
+
+    await flushPromises()
+    expect(wrapper.find('.modal-overlay').exists()).toBe(true)
+
+    await vi.advanceTimersByTimeAsync(3000)
+    await flushPromises()
+
+    expect(wrapper.find('.modal-overlay').exists()).toBe(false)
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('payment.result.success')
+    expect(wrapper.find('canvas').exists()).toBe(false)
   })
 
   it.each([undefined, 0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
@@ -282,20 +319,23 @@ describe('PaymentStatusPanel', () => {
   it('has no close, Escape, or backdrop dismissal route', async () => {
     const wrapper = mount(PaymentStatusPanel, {
       props: exactAmountProps,
-      global: { stubs: { Icon: true, teleport: true } },
+      attachTo: document.body,
+      global: { stubs: { Icon: true } },
     })
 
     await flushPromises()
 
     const dialog = wrapper.getComponent(BaseDialog)
     expect(document.querySelector('[aria-label="Close modal"]')).toBeNull()
+    const overlay = document.querySelector<HTMLElement>('.modal-overlay')
+    if (!overlay) throw new Error('Expected exact amount dialog overlay')
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
-    document.querySelector<HTMLElement>('.modal-overlay')?.click()
+    overlay.click()
     await flushPromises()
 
     expect(dialog.emitted('close')).toBeUndefined()
-    expect(wrapper.find('[data-test="acknowledge-exact-amount"]').exists()).toBe(true)
+    expect(document.querySelector('[data-test="acknowledge-exact-amount"]')).not.toBeNull()
 
     wrapper.unmount()
   })

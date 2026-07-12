@@ -3,6 +3,7 @@ import { flushPromises, shallowMount } from '@vue/test-utils'
 import PaymentView from '../PaymentView.vue'
 import { PAYMENT_RECOVERY_STORAGE_KEY } from '@/components/payment/paymentFlow'
 import { formatPaymentAmount } from '@/components/payment/currency'
+import { formatCurrency } from '@/utils/format'
 import type { CheckoutInfoResponse, MethodLimit, SubscriptionPlan } from '@/types/payment'
 
 const routeState = vi.hoisted(() => ({
@@ -37,10 +38,16 @@ vi.mock('vue-router', async () => {
 
 vi.mock('vue-i18n', async () => {
   const actual = await vi.importActual<typeof import('vue-i18n')>('vue-i18n')
+  const { default: enMisc } = await import('@/i18n/locales/en/misc')
   return {
     ...actual,
     useI18n: () => ({
-      t: (key: string) => key,
+      t: (key: string, params?: Record<string, string>) => {
+        if (key === 'payment.rechargeRatePreview') {
+          return enMisc.payment.rechargeRatePreview.replace('{usd}', params?.usd || '')
+        }
+        return key
+      },
     }),
   }
 })
@@ -199,6 +206,50 @@ function oauthOrderFixture() {
   }
 }
 
+describe('PaymentView recharge rate preview', () => {
+  beforeEach(() => {
+    vi.useRealTimers()
+    routeState.path = '/purchase'
+    routeState.query = {}
+    routerReplace.mockReset().mockResolvedValue(undefined)
+    routerPush.mockReset().mockResolvedValue(undefined)
+    routerResolve.mockClear()
+    createOrder.mockReset()
+    refreshUser.mockReset()
+    fetchActiveSubscriptions.mockReset().mockResolvedValue(undefined)
+    showError.mockReset()
+    showInfo.mockReset()
+    showWarning.mockReset()
+    getCheckoutInfo.mockReset().mockResolvedValue(checkoutInfoFixture({
+      balance_recharge_multiplier: 2,
+    }))
+    bridgeInvoke.mockReset()
+    window.localStorage.clear()
+  })
+
+  it('labels credited balance rate as MYR instead of USD', async () => {
+    const wrapper = shallowMount(PaymentView, {
+      global: {
+        stubs: {
+          AppLayout: {
+            template: '<div><slot /></div>',
+          },
+          Teleport: true,
+          Transition: false,
+        },
+      },
+    })
+    await flushPromises()
+
+    wrapper.findComponent({ name: 'AmountInput' }).vm.$emit('update:modelValue', 10)
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('RM20.00')
+    expect(wrapper.text()).toContain('Current rate: 1 CNY = 2.00 MYR')
+    expect(wrapper.text()).not.toContain('USD')
+  })
+})
+
 async function mountSubscriptionConfirm(options: Parameters<typeof checkoutInfoWithPlansFixture>[0] = {}) {
   vi.useRealTimers()
   routeState.path = '/purchase'
@@ -257,7 +308,9 @@ describe('PaymentView subscription confirmation amounts', () => {
     const convertedOriginalPrice = formatPaymentAmount(92.88, 'CNY')
 
     expect(text).toContain(convertedPrice)
-    expect(text).toContain(convertedOriginalPrice)
+    expect(text).toContain(formatCurrency(9.99))
+    expect(text).toContain(formatCurrency(12.99))
+    expect(text).not.toContain(convertedOriginalPrice)
     expect(text).not.toContain(formatPaymentAmount(9.99, 'CNY'))
     // 换算必须使用订阅汇率（×7.15），而不是余额倍率（÷0.14 = 71.36）
     expect(text).not.toContain(formatPaymentAmount(71.36, 'CNY'))
@@ -280,6 +333,7 @@ describe('PaymentView subscription confirmation amounts', () => {
     })
 
     expect(cnyWrapper.text()).toContain(formatPaymentAmount(7.99, 'CNY'))
+    expect(cnyWrapper.text()).toContain(formatCurrency(7.99))
     expect(cnyWrapper.text()).not.toContain(formatPaymentAmount(57.07, 'CNY'))
     expect(cnyWrapper.text()).not.toContain(formatPaymentAmount(57.13, 'CNY'))
 
@@ -297,7 +351,8 @@ describe('PaymentView subscription confirmation amounts', () => {
     })
 
     expect(usdWrapper.text()).toContain(formatPaymentAmount(7.99, 'USD'))
-    expect(usdWrapper.text()).toContain(formatPaymentAmount(9.99, 'USD'))
+    expect(usdWrapper.text()).toContain(formatCurrency(9.99))
+    expect(usdWrapper.text()).not.toContain(formatPaymentAmount(9.99, 'USD'))
   })
 
   it('adds fee rate after CNY rate conversion to match backend pay_amount', async () => {

@@ -58,6 +58,7 @@ interface DialogStackEntry {
   contains: (element: HTMLElement) => boolean
   getOverlay: () => HTMLElement | null
   handleTab: (event: KeyboardEvent) => void
+  setVisualOwner: (isOwner: boolean) => void
 }
 
 const dialogStack: DialogStackEntry[] = []
@@ -118,10 +119,16 @@ function syncBodyScrollLock() {
     }
   }
 }
+
+function syncDialogOwnership() {
+  const top = getTopDialog()
+  for (const entry of dialogStack) entry.setVisualOwner(entry === top)
+  syncBodyScrollLock()
+}
 </script>
 
 <script setup lang="ts">
-import { computed, watch, onUnmounted, ref, nextTick, provide } from 'vue'
+import { computed, watch, onUnmounted, ref, nextTick, provide, readonly } from 'vue'
 import Icon from '@/components/icons/Icon.vue'
 import { dialogPortalKey } from './dialogPortal'
 
@@ -132,11 +139,13 @@ const dialogToken = Symbol(dialogId)
 // 焦点管理
 const dialogRef = ref<HTMLElement | null>(null)
 const overlayRef = ref<HTMLElement | null>(null)
+const isVisualOwner = ref(false)
 const ownedPortals = new Set<HTMLElement>()
 let previousActiveElement: HTMLElement | null = null
 let stackEntry: DialogStackEntry | null = null
 
 provide(dialogPortalKey, {
+  isVisualOwner: readonly(isVisualOwner),
   registerPortal: portal => ownedPortals.add(portal),
   unregisterPortal: portal => ownedPortals.delete(portal),
 })
@@ -274,9 +283,10 @@ function registerDialog() {
       || Array.from(ownedPortals).some(portal => portal.isConnected && portal.contains(element)),
     getOverlay: () => overlayRef.value,
     handleTab,
+    setVisualOwner: isOwner => { isVisualOwner.value = isOwner },
   }
   dialogStack.push(stackEntry)
-  syncBodyScrollLock()
+  syncDialogOwnership()
 }
 
 function unregisterDialog(): { wasTopmost: boolean; restorationRoot: HTMLElement | null } | null {
@@ -285,8 +295,9 @@ function unregisterDialog(): { wasTopmost: boolean; restorationRoot: HTMLElement
   const restorationRoot = stackEntry.restorationRoot
   const index = dialogStack.indexOf(stackEntry)
   if (index >= 0) dialogStack.splice(index, 1)
+  stackEntry.setVisualOwner(false)
   stackEntry = null
-  syncBodyScrollLock()
+  syncDialogOwnership()
   return { wasTopmost, restorationRoot }
 }
 
@@ -358,6 +369,7 @@ watch(
 
       // 等待DOM更新后设置焦点到对话框
       await nextTick()
+      syncDialogOwnership()
       if (props.show && getTopDialog()?.token === dialogToken) focusDialog()
     } else {
       restorePreviousFocus(unregisterDialog())
@@ -370,9 +382,12 @@ watch(() => props.zIndex, zIndex => {
   if (!stackEntry) return
   const previousTop = getTopDialog()
   stackEntry.zIndex = zIndex
+  syncDialogOwnership()
   const nextTop = getTopDialog()
   if (nextTop && nextTop.token !== previousTop?.token) nextTop.focusDialog()
 })
+
+watch(overlayRef, () => syncDialogOwnership(), { flush: 'post' })
 
 onUnmounted(() => {
   ownedPortals.clear()

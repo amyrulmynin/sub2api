@@ -52,6 +52,8 @@
           class="select-dropdown-portal"
           :class="[instanceId]"
           :style="dropdownStyle"
+          :inert="!ownerActive || undefined"
+          :aria-hidden="ownerActive ? undefined : 'true'"
           role="listbox"
           @click.stop
           @mousedown.stop
@@ -180,11 +182,24 @@ const dropdownRef = ref<HTMLElement | null>(null)
 const optionsListRef = ref<HTMLElement | null>(null)
 const dropdownPosition = ref<'bottom' | 'top'>('bottom')
 const triggerRect = ref<DOMRect | null>(null)
+const ownerActive = computed(() => dialogPortal?.isVisualOwner.value ?? true)
 
 watch(dropdownRef, (portal, previousPortal) => {
   if (previousPortal) dialogPortal?.unregisterPortal(previousPortal)
-  if (portal) dialogPortal?.registerPortal(portal)
+  if (portal && ownerActive.value) dialogPortal?.registerPortal(portal)
 })
+
+watch(ownerActive, active => {
+  if (active) return
+  const portal = dropdownRef.value
+  if (portal) {
+    portal.setAttribute('inert', '')
+    portal.setAttribute('aria-hidden', 'true')
+    portal.style.pointerEvents = 'none'
+    dialogPortal?.unregisterPortal(portal)
+  }
+  isOpen.value = false
+}, { flush: 'sync' })
 
 // i18n placeholders
 const placeholderText = computed(() => props.placeholder ?? t('common.selectOption'))
@@ -207,6 +222,7 @@ const dropdownStyle = computed(() => {
     minWidth: `${rect.width}px`,
     zIndex: '100000020'
   }
+  if (!ownerActive.value) style.pointerEvents = 'none'
 
   if (dropdownPosition.value === 'top') {
     style.bottom = `${window.innerHeight - rect.top + 4}px`
@@ -340,7 +356,7 @@ const calculateDropdownPosition = () => {
 }
 
 const toggle = () => {
-  if (props.disabled) return
+  if (props.disabled || !ownerActive.value) return
   isOpen.value = !isOpen.value
 }
 
@@ -373,6 +389,7 @@ watch(isOpen, (open) => {
 })
 
 const selectOption = (option: any) => {
+  if (!ownerActive.value) return
   const value = getOptionValue(option) ?? null
   emit('update:modelValue', value)
   emit('change', value, option)
@@ -388,7 +405,7 @@ const clearSelection = () => {
 
 // Keyboards
 const onTriggerKeyDown = () => {
-  if (!isOpen.value) {
+  if (ownerActive.value && !isOpen.value) {
     isOpen.value = true
   }
 }

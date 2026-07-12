@@ -661,7 +661,7 @@ func (h *UserHandler) UpdateUserPlatformQuotas(c *gin.Context) {
 		// daily_limit_usd / weekly_limit_usd / monthly_limit_usd 的语义：
 		//   nil / not set → 无限额（完全放行）
 		//   0            → 完全禁用（任何请求都会被拒绝，因为 usage >= 0 恒成立）
-		//   > 0          → USD 限额上限
+		//   > 0          → MYR 限额上限
 		// 拦截 NaN / ±Inf：客户端可发送超大数（如 1e308 × 2）使 JSON 反序列化得到 +Inf，
 		// 进入 DB 后 cache check 中 usage >= limit 永不成立，limit 等同失效。
 		for _, f := range []struct {

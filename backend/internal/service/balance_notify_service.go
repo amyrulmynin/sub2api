@@ -146,7 +146,7 @@ type quotaDim struct {
 
 // resolvedThreshold converts the user-facing "remaining" threshold into a usage-based trigger point.
 // The threshold represents how much quota REMAINS when the alert fires:
-//   - Fixed ($): threshold=400, limit=1000 → fires when usage reaches 600 (remaining drops to 400)
+//   - Fixed (MYR): threshold=400, limit=1000 → fires when usage reaches 600 (remaining drops to 400)
 //   - Percentage (%): threshold=30, limit=1000 → fires when usage reaches 700 (remaining drops to 30%)
 func (d quotaDim) resolvedThreshold() float64 {
 	if d.limit <= 0 {

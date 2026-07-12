@@ -896,9 +896,9 @@ export default {
         typeNotEditable: '分组创建后无法修改计费类型。',
         standard: '标准（余额）',
         subscription: '订阅（配额）',
-        dailyLimit: '每日限额（USD）',
-        weeklyLimit: '每周限额（USD）',
-        monthlyLimit: '每月限额（USD）',
+        dailyLimit: '每日限额（MYR）',
+        weeklyLimit: '每周限额（MYR）',
+        monthlyLimit: '每月限额（MYR）',
         defaultValidityDays: '默认有效期（天）',
         validityHint: '分配给用户时订阅的有效天数',
         noLimit: '无限制'
@@ -922,7 +922,7 @@ export default {
       videoPricing: {
         title: '视频生成计费',
         description:
-          '配置 Grok 视频生成的每秒单价（USD/秒），留空则使用默认每秒价（grok-imagine-video：480p $0.05/s、720p $0.07/s；video-1.5：480p $0.08/s、720p $0.14/s、1080p $0.25/s）',
+          '配置 Grok 视频生成的每秒单价（MYR/秒），留空则使用默认每秒价（grok-imagine-video：480p RM0.05/s、720p RM0.07/s；video-1.5：480p RM0.08/s、720p RM0.14/s、1080p RM0.25/s）',
         independentMultiplier: '视频倍率独立',
         videoMultiplier: '视频独立倍率',
         modeHint:

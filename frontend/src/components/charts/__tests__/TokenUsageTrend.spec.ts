@@ -131,7 +131,7 @@ describe('TokenUsageTrend', () => {
     const options = (wrapper.vm as any).$?.setupState.lineOptions
 
     expect(options.plugins.tooltip.callbacks.footer([{ dataIndex: 0 }])).toBe(
-      'Actual: RM-2.00K | Standard: RM-1.50K'
+      'Actual: -RM2.00K | Standard: -RM1.50K'
     )
   })
 })

@@ -306,5 +306,5 @@ const formatCost = (value: number): string => {
 }
 
 const formatProductCost = (value: number): string =>
-  Math.abs(value) >= 1000 ? `RM${formatCost(value)}` : formatCurrency(value)
+  Math.abs(value) >= 1000 ? `${value < 0 ? '-' : ''}RM${formatCost(Math.abs(value))}` : formatCurrency(value)
 </script>

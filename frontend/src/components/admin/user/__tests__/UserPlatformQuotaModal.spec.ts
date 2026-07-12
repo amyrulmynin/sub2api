@@ -104,6 +104,21 @@ describe('UserPlatformQuotaModal', () => {
     expect((inputs[0].element as HTMLInputElement).value).toBe('10')
   })
 
+  it('以 RM 显示限额输入单位和当前用量，不显示 USD', async () => {
+    apiMocks.getPlatformQuotas.mockResolvedValueOnce({
+      platform_quotas: [
+        { platform: 'anthropic', daily_limit_usd: 10, weekly_limit_usd: 50, monthly_limit_usd: 100,
+          daily_usage_usd: 3.2, weekly_usage_usd: 12.5, monthly_usage_usd: 40 },
+      ],
+    })
+
+    const w = await mountAndOpen()
+
+    expect(w.text()).toContain('RM3.20 / RM12.50 / RM40.00')
+    expect(w.findAll('[data-testid="quota-currency-symbol"]')).toHaveLength(15)
+    expect(w.text()).not.toContain('USD')
+  })
+
   it('保存提交完整 5 platform payload', async () => {
     apiMocks.getPlatformQuotas.mockResolvedValueOnce({
       platform_quotas: [

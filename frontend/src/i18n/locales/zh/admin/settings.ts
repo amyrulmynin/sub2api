@@ -277,9 +277,9 @@ export default {
       },
       platformQuota: {
         platform:    '平台',
-        daily:       '日限额 (USD)',
-        weekly:      '周限额 (USD)',
-        monthly:     '月限额 (USD, 30天滚动)',
+        daily:       '日限额 (MYR)',
+        weekly:      '周限额 (MYR)',
+        monthly:     '月限额 (MYR, 30天滚动)',
         placeholder: '不限',
       },
       claudeCode: {
@@ -525,11 +525,11 @@ export default {
         maxAmount: '最高金额',
         dailyLimit: '每日限额',
         balanceRechargeMultiplier: '余额充值倍率',
-        balanceRechargeMultiplierHint: '用户每支付 1 CNY 可获得多少 USD 余额',
-        balanceRechargePreview: '预览：1 CNY = {usd} USD',
-        subscriptionUsdToCnyRate: '订阅 CNY 换算汇率',
+        balanceRechargeMultiplierHint: '用户每支付 1 CNY 可获得多少 MYR 产品余额',
+        balanceRechargePreview: '预览：1 CNY = {usd} MYR',
+        subscriptionUsdToCnyRate: 'MYR 套餐价格转 CNY 支付汇率',
         subscriptionUsdToCnyRateHint:
-          'CNY 支付通道下，套餐每 1 USD 价格收取多少 CNY（如 7.15）。0 或留空 = 不换算，订阅按 price 数值直接收款。启用后所有套餐 price 必须按 USD 定价',
+          'CNY 支付通道按每 1 MYR 套餐价格收取的 CNY 支付金额（如 1.55）。0 或留空 = 不换算，CNY 通道按套餐 price 数值直接收款。启用后所有套餐 price 必须按 MYR 定价',
         subscriptionUsdToCnyRateDisabled: '未启用（按 price 直付）',
         rechargeFeeRate: '充值手续费率',
         rechargeFeeRateHint: '用户充值时额外收取的手续费百分比，0 表示不收取手续费',

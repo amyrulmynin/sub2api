@@ -645,12 +645,12 @@ export default {
       platformQuota: {
         menuItem: 'Platform Quotas',
         title: 'Platform Quotas',
-        subtitle: 'Configure daily / weekly / monthly USD usage limits for each upstream platform for user {email}',
+        subtitle: 'Configure daily / weekly / monthly MYR usage limits for each upstream platform for user {email}',
         columns: {
           platform: 'Platform',
-          daily: 'Daily (USD)',
-          weekly: 'Weekly (USD)',
-          monthly: 'Monthly (USD, 30-day rolling)',
+          daily: 'Daily (MYR)',
+          weekly: 'Weekly (MYR)',
+          monthly: 'Monthly (MYR, 30-day rolling)',
           usage: 'Current Usage',
         },
         placeholder: 'unlimited',

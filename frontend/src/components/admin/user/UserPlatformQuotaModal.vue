@@ -32,14 +32,17 @@
               <td class="px-3 py-2 font-mono text-gray-900 dark:text-white">{{ row.platform }}</td>
               <td class="px-3 py-2">
                 <div class="flex items-center gap-1">
+                  <div class="relative">
+                    <span data-testid="quota-currency-symbol" class="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-500">{{ PRODUCT_CURRENCY_SYMBOL }}</span>
                   <input
                     v-model.number="row.daily_limit_usd"
                     type="number"
                     min="0"
                     step="0.01"
-                    class="input w-24"
+                    class="input w-24 pl-8"
                     :placeholder="t('admin.users.platformQuota.placeholder')"
                   />
+                  </div>
                   <button
                     type="button"
                     class="text-xs text-gray-400 hover:text-amber-500 disabled:opacity-50"
@@ -51,14 +54,17 @@
               </td>
               <td class="px-3 py-2">
                 <div class="flex items-center gap-1">
+                  <div class="relative">
+                    <span data-testid="quota-currency-symbol" class="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-500">{{ PRODUCT_CURRENCY_SYMBOL }}</span>
                   <input
                     v-model.number="row.weekly_limit_usd"
                     type="number"
                     min="0"
                     step="0.01"
-                    class="input w-24"
+                    class="input w-24 pl-8"
                     :placeholder="t('admin.users.platformQuota.placeholder')"
                   />
+                  </div>
                   <button
                     type="button"
                     class="text-xs text-gray-400 hover:text-amber-500 disabled:opacity-50"
@@ -70,14 +76,17 @@
               </td>
               <td class="px-3 py-2">
                 <div class="flex items-center gap-1">
+                  <div class="relative">
+                    <span data-testid="quota-currency-symbol" class="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-500">{{ PRODUCT_CURRENCY_SYMBOL }}</span>
                   <input
                     v-model.number="row.monthly_limit_usd"
                     type="number"
                     min="0"
                     step="0.01"
-                    class="input w-24"
+                    class="input w-24 pl-8"
                     :placeholder="t('admin.users.platformQuota.placeholder')"
                   />
+                  </div>
                   <button
                     type="button"
                     class="text-xs text-gray-400 hover:text-amber-500 disabled:opacity-50"
@@ -88,7 +97,7 @@
                 </div>
               </td>
               <td class="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
-                {{ formatUsage(row.daily_usage_usd) }} / {{ formatUsage(row.weekly_usage_usd) }} / {{ formatUsage(row.monthly_usage_usd) }}
+                 {{ formatCurrency(row.daily_usage_usd) }} / {{ formatCurrency(row.weekly_usage_usd) }} / {{ formatCurrency(row.monthly_usage_usd) }}
               </td>
             </tr>
           </tbody>
@@ -121,6 +130,7 @@ import { useAppStore } from '@/stores/app'
 import { adminAPI } from '@/api/admin'
 import type { AdminUser, PlatformQuotaItem, PlatformQuotaPlatform, PlatformQuotaWindow } from '@/types'
 import BaseDialog from '@/components/common/BaseDialog.vue'
+import { formatCurrency, PRODUCT_CURRENCY_SYMBOL } from '@/utils/format'
 
 const props = defineProps<{ show: boolean; user: AdminUser | null }>()
 const emit = defineEmits(['close', 'success'])
@@ -177,11 +187,6 @@ function normalize(items: PlatformQuotaItem[]): QuotaRow[] {
       monthly_usage_usd: it.monthly_usage_usd ?? 0,
     }
   })
-}
-
-function formatUsage(n: number): string {
-  if (n == null || Number.isNaN(n)) return '-'
-  return n.toFixed(2)
 }
 
 async function load() {

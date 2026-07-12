@@ -281,9 +281,9 @@ export default {
       },
       platformQuota: {
         platform:    'Platform',
-        daily:       'Daily (USD)',
-        weekly:      'Weekly (USD)',
-        monthly:     'Monthly (USD, 30d rolling)',
+        daily:       'Daily (MYR)',
+        weekly:      'Weekly (MYR)',
+        monthly:     'Monthly (MYR, 30d rolling)',
         placeholder: 'Unlimited',
       },
       claudeCode: {
@@ -529,11 +529,11 @@ export default {
         maxAmount: 'Maximum Amount',
         dailyLimit: 'Daily Limit',
         balanceRechargeMultiplier: 'Balance Recharge Multiplier',
-        balanceRechargeMultiplierHint: 'How many USD balance the user receives for each 1 CNY paid',
-        balanceRechargePreview: 'Preview: 1 CNY = {usd} USD',
-        subscriptionUsdToCnyRate: 'Subscription USD to CNY Rate',
+        balanceRechargeMultiplierHint: 'How much MYR product balance the user receives for each 1 CNY paid',
+        balanceRechargePreview: 'Preview: 1 CNY = {usd} MYR',
+        subscriptionUsdToCnyRate: 'MYR Plan Price to CNY Payment Rate',
         subscriptionUsdToCnyRateHint:
-          'CNY charged per 1 USD of plan price on CNY channels (e.g. 7.15). 0 or empty = disabled, plan price is charged as-is. When enabled, all plan prices must be set in USD',
+          'CNY provider payment amount per 1 MYR of plan price (e.g. 1.55). 0 or empty = disabled; CNY channels charge the plan price value as-is. When enabled, all plan prices must be set in MYR',
         subscriptionUsdToCnyRateDisabled: 'Disabled (price charged as-is)',
         rechargeFeeRate: 'Recharge Fee Rate',
         rechargeFeeRateHint: 'Percentage of service fee charged on top of recharge amount, 0 means no fee',

@@ -692,12 +692,12 @@ export default {
       platformQuota: {
         menuItem: '平台限额',
         title: '平台限额',
-        subtitle: '为用户 {email} 配置各上游平台的日 / 周 / 月用量上限',
+        subtitle: '为用户 {email} 配置各上游平台的日 / 周 / 月 MYR 用量上限',
         columns: {
           platform: '平台',
-          daily: '日 (USD)',
-          weekly: '周 (USD)',
-          monthly: '月 (USD, 30天滚动)',
+          daily: '日 (MYR)',
+          weekly: '周 (MYR)',
+          monthly: '月 (MYR, 30天滚动)',
           usage: '当前用量',
         },
         placeholder: '不限制',

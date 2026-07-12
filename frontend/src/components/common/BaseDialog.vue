@@ -44,15 +44,60 @@
 
 <script lang="ts">
 let dialogIdCounter = 0
-const dialogStack: symbol[] = []
+let dialogSequence = 0
+
+interface DialogStackEntry {
+  token: symbol
+  zIndex: number
+  sequence: number
+  closeOnEscape: () => boolean
+  emitClose: () => void
+  focusDialog: () => void
+  contains: (element: HTMLElement) => boolean
+  handleTab: (event: KeyboardEvent) => void
+}
+
+const dialogStack: DialogStackEntry[] = []
+let keydownListening = false
+
+function getTopDialog(): DialogStackEntry | undefined {
+  return dialogStack.reduce<DialogStackEntry | undefined>((top, entry) => {
+    if (!top || entry.zIndex > top.zIndex || (entry.zIndex === top.zIndex && entry.sequence > top.sequence)) {
+      return entry
+    }
+    return top
+  }, undefined)
+}
+
+function handleStackKeydown(event: KeyboardEvent) {
+  if (event.defaultPrevented) return
+  const top = getTopDialog()
+  if (!top) return
+
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    event.stopPropagation()
+    if (top.closeOnEscape()) top.emitClose()
+    return
+  }
+
+  if (event.key === 'Tab') top.handleTab(event)
+}
 
 function syncBodyScrollLock() {
   document.body.classList.toggle('modal-open', dialogStack.length > 0)
+  if (dialogStack.length > 0 && !keydownListening) {
+    document.addEventListener('keydown', handleStackKeydown, true)
+    keydownListening = true
+  } else if (dialogStack.length === 0 && keydownListening) {
+    document.removeEventListener('keydown', handleStackKeydown, true)
+    keydownListening = false
+  }
 }
 </script>
 
 <script setup lang="ts">
-import { computed, watch, onMounted, onUnmounted, ref, nextTick } from 'vue'
+import { computed, watch, onUnmounted, ref, nextTick } from 'vue'
 import Icon from '@/components/icons/Icon.vue'
 
 // 生成唯一ID以避免多个对话框时ID冲突
@@ -62,7 +107,7 @@ const dialogToken = Symbol(dialogId)
 // 焦点管理
 const dialogRef = ref<HTMLElement | null>(null)
 let previousActiveElement: HTMLElement | null = null
-let registered = false
+let stackEntry: DialogStackEntry | null = null
 
 type DialogWidth = 'narrow' | 'normal' | 'wide' | 'extra-wide' | 'full'
 
@@ -126,7 +171,7 @@ const focusableSelector = [
 ].join(',')
 
 function isSequentiallyFocusable(element: HTMLElement): boolean {
-  if (element.tabIndex < 0 || element.matches(':disabled') || element.closest('[inert], fieldset:disabled')) {
+  if (element.tabIndex < 0 || element.matches(':disabled') || element.closest('[inert]')) {
     return false
   }
 
@@ -151,42 +196,65 @@ function getFocusableElements(): HTMLElement[] {
     .filter(isSequentiallyFocusable)
 }
 
-function isTopmostDialog(): boolean {
-  return dialogStack[dialogStack.length - 1] === dialogToken
+function focusDialog() {
+  if (!dialogRef.value) return
+  const focusTarget = getFocusableElements()[0] || dialogRef.value
+  focusTarget.focus()
 }
 
 function registerDialog() {
-  if (registered) return
-  registered = true
-  dialogStack.push(dialogToken)
+  if (stackEntry) return
+  stackEntry = {
+    token: dialogToken,
+    zIndex: props.zIndex,
+    sequence: ++dialogSequence,
+    closeOnEscape: () => props.closeOnEscape,
+    emitClose: () => emit('close'),
+    focusDialog,
+    contains: element => dialogRef.value?.contains(element) === true,
+    handleTab,
+  }
+  dialogStack.push(stackEntry)
   syncBodyScrollLock()
 }
 
 function unregisterDialog(): boolean {
-  if (!registered) return false
-  const index = dialogStack.lastIndexOf(dialogToken)
-  const wasTopmost = index === dialogStack.length - 1
+  if (!stackEntry) return false
+  const wasTopmost = getTopDialog()?.token === dialogToken
+  const index = dialogStack.indexOf(stackEntry)
   if (index >= 0) dialogStack.splice(index, 1)
-  registered = false
+  stackEntry = null
   syncBodyScrollLock()
   return wasTopmost
+}
+
+function canRestoreFocus(element: HTMLElement): boolean {
+  if (!element.isConnected || element.matches(':disabled') || element.closest('[inert]')) return false
+  let current: HTMLElement | null = element
+  while (current) {
+    const style = window.getComputedStyle(current)
+    if (current.hidden || current.getAttribute('aria-hidden') === 'true' || style.display === 'none' || style.visibility === 'hidden') {
+      return false
+    }
+    current = current.parentElement
+  }
+  return true
 }
 
 function restorePreviousFocus(wasTopmost: boolean) {
   const focusTarget = previousActiveElement
   previousActiveElement = null
-  if (wasTopmost && focusTarget?.isConnected) focusTarget.focus()
+  if (!wasTopmost) return
+  const nextTop = getTopDialog()
+  if (focusTarget && canRestoreFocus(focusTarget) && (!nextTop || nextTop.contains(focusTarget))) {
+    focusTarget.focus()
+    if (document.activeElement === focusTarget) return
+  }
+  nextTop?.focusDialog()
 }
 
-const handleKeydown = (event: KeyboardEvent) => {
-  if (event.defaultPrevented || !props.show || !isTopmostDialog()) return
-  if (props.closeOnEscape && event.key === 'Escape') {
-    event.preventDefault()
-    emit('close')
-    return
-  }
-  if (event.key !== 'Tab' || !dialogRef.value) return
-
+function handleTab(event: KeyboardEvent) {
+  if (!dialogRef.value) return
   const focusable = getFocusableElements()
   if (focusable.length === 0) {
     event.preventDefault()
@@ -217,11 +285,7 @@ watch(
 
       // 等待DOM更新后设置焦点到对话框
       await nextTick()
-      if (props.show && isTopmostDialog() && dialogRef.value) {
-        const firstFocusable = getFocusableElements()[0]
-        const focusTarget = firstFocusable || dialogRef.value
-        focusTarget.focus()
-      }
+      if (props.show && getTopDialog()?.token === dialogToken) focusDialog()
     } else {
       restorePreviousFocus(unregisterDialog())
     }
@@ -229,12 +293,13 @@ watch(
   { immediate: true }
 )
 
-onMounted(() => {
-  document.addEventListener('keydown', handleKeydown)
+watch(() => props.zIndex, zIndex => {
+  if (!stackEntry) return
+  stackEntry.zIndex = zIndex
+  if (getTopDialog()?.token === dialogToken) focusDialog()
 })
 
 onUnmounted(() => {
-  document.removeEventListener('keydown', handleKeydown)
   restorePreviousFocus(unregisterDialog())
 })
 </script>

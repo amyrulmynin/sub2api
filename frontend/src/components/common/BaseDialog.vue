@@ -42,17 +42,27 @@
   </Teleport>
 </template>
 
+<script lang="ts">
+let dialogIdCounter = 0
+const dialogStack: symbol[] = []
+
+function syncBodyScrollLock() {
+  document.body.classList.toggle('modal-open', dialogStack.length > 0)
+}
+</script>
+
 <script setup lang="ts">
 import { computed, watch, onMounted, onUnmounted, ref, nextTick } from 'vue'
 import Icon from '@/components/icons/Icon.vue'
 
 // 生成唯一ID以避免多个对话框时ID冲突
-let dialogIdCounter = 0
 const dialogId = `modal-title-${++dialogIdCounter}`
+const dialogToken = Symbol(dialogId)
 
 // 焦点管理
 const dialogRef = ref<HTMLElement | null>(null)
 let previousActiveElement: HTMLElement | null = null
+let registered = false
 
 type DialogWidth = 'narrow' | 'normal' | 'wide' | 'extra-wide' | 'full'
 
@@ -107,16 +117,25 @@ const handleClose = () => {
 
 const focusableSelector = [
   'a[href]',
-  'button:not([disabled])',
-  'input:not([disabled])',
-  'select:not([disabled])',
-  'textarea:not([disabled])',
-  '[tabindex]:not([tabindex="-1"])'
+  'button',
+  'input',
+  'select',
+  'textarea',
+  'summary',
+  '[tabindex]'
 ].join(',')
 
-function isVisible(element: HTMLElement): boolean {
+function isSequentiallyFocusable(element: HTMLElement): boolean {
+  if (element.tabIndex < 0 || element.matches(':disabled') || element.closest('[inert], fieldset:disabled')) {
+    return false
+  }
+
   let current: HTMLElement | null = element
   while (current && current !== dialogRef.value) {
+    if (current.tagName === 'DETAILS' && !(current as HTMLDetailsElement).open
+      && !(element.tagName === 'SUMMARY' && element.parentElement === current)) {
+      return false
+    }
     const style = window.getComputedStyle(current)
     if (current.hidden || current.getAttribute('aria-hidden') === 'true' || style.display === 'none' || style.visibility === 'hidden') {
       return false
@@ -129,12 +148,40 @@ function isVisible(element: HTMLElement): boolean {
 function getFocusableElements(): HTMLElement[] {
   if (!dialogRef.value) return []
   return Array.from(dialogRef.value.querySelectorAll<HTMLElement>(focusableSelector))
-    .filter(element => !element.matches(':disabled') && isVisible(element))
+    .filter(isSequentiallyFocusable)
+}
+
+function isTopmostDialog(): boolean {
+  return dialogStack[dialogStack.length - 1] === dialogToken
+}
+
+function registerDialog() {
+  if (registered) return
+  registered = true
+  dialogStack.push(dialogToken)
+  syncBodyScrollLock()
+}
+
+function unregisterDialog(): boolean {
+  if (!registered) return false
+  const index = dialogStack.lastIndexOf(dialogToken)
+  const wasTopmost = index === dialogStack.length - 1
+  if (index >= 0) dialogStack.splice(index, 1)
+  registered = false
+  syncBodyScrollLock()
+  return wasTopmost
+}
+
+function restorePreviousFocus(wasTopmost: boolean) {
+  const focusTarget = previousActiveElement
+  previousActiveElement = null
+  if (wasTopmost && focusTarget?.isConnected) focusTarget.focus()
 }
 
 const handleKeydown = (event: KeyboardEvent) => {
-  if (!props.show) return
+  if (event.defaultPrevented || !props.show || !isTopmostDialog()) return
   if (props.closeOnEscape && event.key === 'Escape') {
+    event.preventDefault()
     emit('close')
     return
   }
@@ -166,23 +213,17 @@ watch(
     if (isOpen) {
       // 保存当前焦点元素
       previousActiveElement = document.activeElement as HTMLElement
-      // 使用CSS类而不是直接操作style,更易于管理多个对话框
-      document.body.classList.add('modal-open')
+      registerDialog()
 
       // 等待DOM更新后设置焦点到对话框
       await nextTick()
-      if (dialogRef.value) {
+      if (props.show && isTopmostDialog() && dialogRef.value) {
         const firstFocusable = getFocusableElements()[0]
         const focusTarget = firstFocusable || dialogRef.value
         focusTarget.focus()
       }
     } else {
-      document.body.classList.remove('modal-open')
-      // 恢复之前的焦点
-      if (previousActiveElement && typeof previousActiveElement.focus === 'function') {
-        previousActiveElement.focus()
-      }
-      previousActiveElement = null
+      restorePreviousFocus(unregisterDialog())
     }
   },
   { immediate: true }
@@ -194,7 +235,6 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown)
-  // 确保组件卸载时移除滚动锁定
-  document.body.classList.remove('modal-open')
+  restorePreviousFocus(unregisterDialog())
 })
 </script>

@@ -3,6 +3,7 @@
     <Transition name="modal">
       <div
         v-if="show"
+        ref="overlayRef"
         class="modal-overlay"
         :style="zIndexStyle"
         :aria-labelledby="dialogId"
@@ -50,10 +51,12 @@ interface DialogStackEntry {
   token: symbol
   zIndex: number
   sequence: number
+  restorationRoot: HTMLElement | null
   closeOnEscape: () => boolean
   emitClose: () => void
   focusDialog: () => void
   contains: (element: HTMLElement) => boolean
+  getOverlay: () => HTMLElement | null
   handleTab: (event: KeyboardEvent) => void
 }
 
@@ -62,26 +65,34 @@ let keydownListening = false
 
 function getTopDialog(): DialogStackEntry | undefined {
   return dialogStack.reduce<DialogStackEntry | undefined>((top, entry) => {
-    if (!top || entry.zIndex > top.zIndex || (entry.zIndex === top.zIndex && entry.sequence > top.sequence)) {
-      return entry
+    if (!top || entry.zIndex > top.zIndex) return entry
+    if (entry.zIndex < top.zIndex) return top
+
+    const topOverlay = top.getOverlay()
+    const entryOverlay = entry.getOverlay()
+    if (topOverlay?.isConnected && entryOverlay?.isConnected) {
+      const position = topOverlay.compareDocumentPosition(entryOverlay)
+      if (position & Node.DOCUMENT_POSITION_FOLLOWING) return entry
+      if (position & Node.DOCUMENT_POSITION_PRECEDING) return top
     }
-    return top
+    return entry.sequence > top.sequence ? entry : top
   }, undefined)
 }
 
 function handleStackKeydown(event: KeyboardEvent) {
-  if (event.defaultPrevented) return
   const top = getTopDialog()
   if (!top) return
 
   if (event.key === 'Escape') {
     event.preventDefault()
     event.stopPropagation()
+    // Other capture listeners can share document; immediate stop keeps Escape inside top modal.
+    event.stopImmediatePropagation()
     if (top.closeOnEscape()) top.emitClose()
     return
   }
 
-  if (event.key === 'Tab') top.handleTab(event)
+  if (!event.defaultPrevented && event.key === 'Tab') top.handleTab(event)
 }
 
 function syncBodyScrollLock() {
@@ -106,6 +117,7 @@ const dialogToken = Symbol(dialogId)
 
 // 焦点管理
 const dialogRef = ref<HTMLElement | null>(null)
+const overlayRef = ref<HTMLElement | null>(null)
 let previousActiveElement: HTMLElement | null = null
 let stackEntry: DialogStackEntry | null = null
 
@@ -167,11 +179,14 @@ const focusableSelector = [
   'select',
   'textarea',
   'summary',
-  '[tabindex]'
+  '[tabindex]',
+  '[contenteditable]:not([contenteditable="false"])'
 ].join(',')
 
 function isSequentiallyFocusable(element: HTMLElement): boolean {
-  if (element.tabIndex < 0 || element.matches(':disabled') || element.closest('[inert]')) {
+  const hasEditableFocus = element.matches('[contenteditable]:not([contenteditable="false"])')
+  if ((!hasEditableFocus && element.tabIndex < 0) || Number(element.getAttribute('tabindex')) < 0
+    || element.matches(':disabled') || element.closest('[inert]')) {
     return false
   }
 
@@ -194,6 +209,14 @@ function getFocusableElements(): HTMLElement[] {
   if (!dialogRef.value) return []
   return Array.from(dialogRef.value.querySelectorAll<HTMLElement>(focusableSelector))
     .filter(isSequentiallyFocusable)
+    .map((element, index) => ({ element, index, tabIndex: Math.max(0, element.tabIndex) }))
+    .sort((a, b) => {
+      if (a.tabIndex > 0 && b.tabIndex > 0) return a.tabIndex - b.tabIndex || a.index - b.index
+      if (a.tabIndex > 0) return -1
+      if (b.tabIndex > 0) return 1
+      return a.index - b.index
+    })
+    .map(item => item.element)
 }
 
 function focusDialog() {
@@ -204,28 +227,32 @@ function focusDialog() {
 
 function registerDialog() {
   if (stackEntry) return
+  const restorationRoot = getTopDialog()?.restorationRoot || previousActiveElement
   stackEntry = {
     token: dialogToken,
     zIndex: props.zIndex,
     sequence: ++dialogSequence,
+    restorationRoot,
     closeOnEscape: () => props.closeOnEscape,
     emitClose: () => emit('close'),
     focusDialog,
     contains: element => dialogRef.value?.contains(element) === true,
+    getOverlay: () => overlayRef.value,
     handleTab,
   }
   dialogStack.push(stackEntry)
   syncBodyScrollLock()
 }
 
-function unregisterDialog(): boolean {
-  if (!stackEntry) return false
+function unregisterDialog(): { wasTopmost: boolean; restorationRoot: HTMLElement | null } | null {
+  if (!stackEntry) return null
   const wasTopmost = getTopDialog()?.token === dialogToken
+  const restorationRoot = stackEntry.restorationRoot
   const index = dialogStack.indexOf(stackEntry)
   if (index >= 0) dialogStack.splice(index, 1)
   stackEntry = null
   syncBodyScrollLock()
-  return wasTopmost
+  return { wasTopmost, restorationRoot }
 }
 
 function canRestoreFocus(element: HTMLElement): boolean {
@@ -241,16 +268,24 @@ function canRestoreFocus(element: HTMLElement): boolean {
   return true
 }
 
-function restorePreviousFocus(wasTopmost: boolean) {
+function restorePreviousFocus(result: { wasTopmost: boolean; restorationRoot: HTMLElement | null } | null) {
   const focusTarget = previousActiveElement
   previousActiveElement = null
-  if (!wasTopmost) return
+  if (!result?.wasTopmost) return
   const nextTop = getTopDialog()
-  if (focusTarget && canRestoreFocus(focusTarget) && (!nextTop || nextTop.contains(focusTarget))) {
-    focusTarget.focus()
-    if (document.activeElement === focusTarget) return
+  if (nextTop) {
+    if (focusTarget && canRestoreFocus(focusTarget) && nextTop.contains(focusTarget)) {
+      focusTarget.focus()
+      if (document.activeElement === focusTarget) return
+    }
+    nextTop.focusDialog()
+    return
   }
-  nextTop?.focusDialog()
+  if (result.restorationRoot && canRestoreFocus(result.restorationRoot)) {
+    result.restorationRoot.focus()
+  } else if (focusTarget && canRestoreFocus(focusTarget)) {
+    focusTarget.focus()
+  }
 }
 
 function handleTab(event: KeyboardEvent) {

@@ -98,9 +98,9 @@ describe('BaseDialog', () => {
     expect(document.activeElement).toBe(innerButton)
     expect(document.body.classList.contains('modal-open')).toBe(true)
 
-    const preventedEscape = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true })
-    preventedEscape.preventDefault()
-    document.dispatchEvent(preventedEscape)
+    const preventedTab = new KeyboardEvent('keydown', { key: 'Tab', cancelable: true })
+    preventedTab.preventDefault()
+    document.dispatchEvent(preventedTab)
     expect(inner.emitted('close')).toBeUndefined()
     expect(outer.emitted('close')).toBeUndefined()
 
@@ -391,6 +391,137 @@ describe('BaseDialog', () => {
     fieldsetLink.focus()
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', cancelable: true }))
     expect(document.activeElement).toBe(legendControl)
+
+    wrapper.unmount()
+  })
+
+  it('preserves external focus across non-LIFO visual closes', async () => {
+    const outsideButton = document.createElement('button')
+    document.body.appendChild(outsideButton)
+    outsideButton.focus()
+
+    const high = mount(BaseDialog, {
+      props: { show: true, title: 'High chain', showCloseButton: false, zIndex: 80 },
+      slots: { default: '<button data-test="chain-high">High action</button>' },
+      attachTo: document.body,
+    })
+    await flushPromises()
+
+    const low = mount(BaseDialog, {
+      props: { show: true, title: 'Low chain', showCloseButton: false, zIndex: 40 },
+      slots: { default: '<button data-test="chain-low">Low action</button>' },
+      attachTo: document.body,
+    })
+    await flushPromises()
+    const lowButton = document.querySelector<HTMLElement>('[data-test="chain-low"]')
+    if (!lowButton) throw new Error('Expected low chain control')
+
+    await high.setProps({ show: false })
+    await flushPromises()
+    expect(document.activeElement).toBe(lowButton)
+
+    await low.setProps({ show: false })
+    await flushPromises()
+    expect(document.activeElement).toBe(outsideButton)
+
+    low.unmount()
+    high.unmount()
+  })
+
+  it('uses live equal-z overlay paint order after reopening an earlier dialog', async () => {
+    const first = mount(BaseDialog, {
+      props: { show: true, title: 'Reopen first', showCloseButton: false, zIndex: 60 },
+      slots: { default: '<button data-test="reopen-first">First action</button>' },
+      attachTo: document.body,
+    })
+    await flushPromises()
+
+    const second = mount(BaseDialog, {
+      props: { show: true, title: 'Reopen second', showCloseButton: false, zIndex: 60 },
+      slots: { default: '<button data-test="reopen-second">Second action</button>' },
+      attachTo: document.body,
+    })
+    await flushPromises()
+
+    await first.setProps({ show: false })
+    await flushPromises()
+    await first.setProps({ show: true })
+    await flushPromises()
+
+    const firstOverlay = document.querySelector<HTMLElement>('[data-test="reopen-first"]')?.closest('.modal-overlay')
+    const secondButton = document.querySelector<HTMLElement>('[data-test="reopen-second"]')
+    if (!secondButton) throw new Error('Expected later-painted second control')
+    const secondOverlay = secondButton.closest('.modal-overlay')
+    if (!firstOverlay || !secondOverlay) throw new Error('Expected equal-z overlays')
+    expect(firstOverlay.compareDocumentPosition(secondOverlay) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+
+    secondButton.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true, bubbles: true }))
+    expect(second.emitted('close')).toHaveLength(1)
+    expect(first.emitted('close')).toBeUndefined()
+
+    second.unmount()
+    first.unmount()
+  })
+
+  it('isolates Escape after an earlier capture listener prevents default', async () => {
+    const preventFirst = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') event.preventDefault()
+    }
+    let backgroundCalls = 0
+    const backgroundListener = () => { backgroundCalls++ }
+    document.addEventListener('keydown', preventFirst, true)
+
+    try {
+      const wrapper = mount(BaseDialog, {
+        props: { show: true, title: 'Escape isolation', showCloseButton: false },
+        slots: { default: '<button data-test="escape-isolation">Action</button>' },
+        attachTo: document.body,
+      })
+      await flushPromises()
+      document.addEventListener('keydown', backgroundListener, true)
+
+      const button = document.querySelector<HTMLElement>('[data-test="escape-isolation"]')
+      if (!button) throw new Error('Expected Escape isolation control')
+      const escape = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true, bubbles: true })
+      button.dispatchEvent(escape)
+
+      expect(escape.defaultPrevented).toBe(true)
+      expect(wrapper.emitted('close')).toHaveLength(1)
+      expect(backgroundCalls).toBe(0)
+      wrapper.unmount()
+    } finally {
+      document.removeEventListener('keydown', preventFirst, true)
+      document.removeEventListener('keydown', backgroundListener, true)
+    }
+  })
+
+  it('includes contenteditable and orders positive tabindex before implicit controls', async () => {
+    const wrapper = mount(BaseDialog, {
+      props: { show: true, title: 'Tab order', showCloseButton: false },
+      slots: {
+        default: `
+          <button data-test="implicit">Implicit</button>
+          <div contenteditable data-test="editable">Editable</div>
+          <button tabindex="2" data-test="tab-two">Two</button>
+          <button tabindex="1" data-test="tab-one">One</button>
+        `,
+      },
+      attachTo: document.body,
+    })
+    await flushPromises()
+
+    const tabOne = document.querySelector<HTMLElement>('[data-test="tab-one"]')
+    const editable = document.querySelector<HTMLElement>('[data-test="editable"]')
+    if (!tabOne || !editable) throw new Error('Expected ordered focus controls')
+    expect(document.activeElement).toBe(tabOne)
+
+    tabOne.focus()
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, cancelable: true }))
+    expect(document.activeElement).toBe(editable)
+
+    editable.focus()
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', cancelable: true }))
+    expect(document.activeElement).toBe(tabOne)
 
     wrapper.unmount()
   })

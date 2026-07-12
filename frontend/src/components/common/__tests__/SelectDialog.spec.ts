@@ -119,7 +119,7 @@ describe('Select in BaseDialog', () => {
     expect(value.value).toBeNull()
     trigger.click()
     await flushPromises()
-    expect(document.querySelectorAll('.select-dropdown-portal')).toHaveLength(outerDropdown ? 1 : 0)
+    expect(document.querySelector('.select-dropdown-active')).toBeNull()
     expect(document.querySelector<HTMLElement>('.select-dropdown-portal')?.getAttribute('aria-hidden')).toBe('true')
 
     search.focus()

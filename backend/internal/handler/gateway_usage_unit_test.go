@@ -30,7 +30,9 @@ func TestGatewayUsageQuotaMetadataUsesMYR(t *testing.T) {
 	var body map[string]any
 	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &body))
 	require.Equal(t, "MYR", body["unit"])
-	require.Equal(t, "MYR", body["quota"].(map[string]any)["unit"])
+	quota, ok := body["quota"].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, "MYR", quota["unit"])
 }
 
 func TestGatewayUsageRateLimitOnlyMetadataUsesMYR(t *testing.T) {
@@ -54,7 +56,10 @@ func TestGatewayUsageRateLimitOnlyMetadataUsesMYR(t *testing.T) {
 	var body map[string]any
 	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &body))
 	require.Equal(t, "MYR", body["unit"])
-	rateLimits := body["rate_limits"].([]any)
+	rateLimits, ok := body["rate_limits"].([]any)
+	require.True(t, ok)
 	require.Len(t, rateLimits, 1)
-	require.Equal(t, "MYR", rateLimits[0].(map[string]any)["unit"])
+	rateLimit, ok := rateLimits[0].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, "MYR", rateLimit["unit"])
 }

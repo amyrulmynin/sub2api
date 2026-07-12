@@ -400,6 +400,63 @@ describe('PaymentView payment recovery', () => {
     ;(window as Window & { WeixinJSBridge?: { invoke: typeof bridgeInvoke } }).WeixinJSBridge = undefined
   })
 
+  it('persists exact amount acknowledgement only for the active order', async () => {
+    getCheckoutInfo.mockResolvedValue(checkoutInfoFixture())
+    window.localStorage.setItem(PAYMENT_RECOVERY_STORAGE_KEY, JSON.stringify({
+      orderId: 42,
+      amount: 10,
+      baseAmount: 10,
+      qrCode: 'duitnow-qr',
+      expiresAt: '2099-01-01T00:10:00.000Z',
+      paymentType: 'mudahpay',
+      payUrl: '',
+      outTradeNo: '',
+      clientSecret: '',
+      intentId: '',
+      currency: 'MYR',
+      countryCode: 'MY',
+      paymentEnv: '',
+      payAmount: 10.01,
+      exactAmountAcknowledged: false,
+      orderType: 'balance',
+      paymentMode: 'qrcode',
+      resumeToken: '',
+      createdAt: Date.now(),
+    }))
+
+    const wrapper = shallowMount(PaymentView, {
+      global: {
+        stubs: {
+          AppLayout: {
+            template: '<div><slot /></div>',
+          },
+          PaymentStatusPanel: {
+            props: ['orderId', 'amount', 'payAmount', 'exactAmountAcknowledged'],
+            template: '<div><button data-test="ack" @click="$emit(\'exact-amount-acknowledged\', orderId)">{{ amount }}|{{ payAmount }}|{{ exactAmountAcknowledged }}</button><button data-test="stale-ack" @click="$emit(\'exact-amount-acknowledged\', 99)" /></div>',
+          },
+          Teleport: true,
+          Transition: false,
+        },
+      },
+    })
+    await flushPromises()
+
+    expect(wrapper.get('[data-test="ack"]').text()).toContain('10|10.01|false')
+
+    await wrapper.get('[data-test="stale-ack"]').trigger('click')
+    await flushPromises()
+    expect(JSON.parse(window.localStorage.getItem(PAYMENT_RECOVERY_STORAGE_KEY) || '{}')).toMatchObject({
+      orderId: 42,
+      exactAmountAcknowledged: false,
+    })
+
+    await wrapper.get('[data-test="ack"]').trigger('click')
+    expect(JSON.parse(window.localStorage.getItem(PAYMENT_RECOVERY_STORAGE_KEY) || '{}')).toMatchObject({
+      orderId: 42,
+      exactAmountAcknowledged: true,
+    })
+  })
+
   it('restores a custom EasyPay method as the selected payment method', async () => {
     getCheckoutInfo.mockResolvedValue(checkoutInfoFixture({
       methods: {

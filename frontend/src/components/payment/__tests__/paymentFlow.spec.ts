@@ -4,6 +4,7 @@ import {
   buildCreateOrderPayload,
   decidePaymentLaunch,
   getVisibleMethods,
+  normalizeVisibleMethod,
   readPaymentRecoverySnapshot,
   type PaymentRecoverySnapshot,
 } from '@/components/payment/paymentFlow'
@@ -74,6 +75,31 @@ describe('getVisibleMethods', () => {
 })
 
 describe('decidePaymentLaunch', () => {
+  it('launches MudahPay QR payments with exact amount acknowledgement reset', () => {
+    expect(normalizeVisibleMethod('mudahpay')).toBe('mudahpay')
+
+    const decision = decidePaymentLaunch(createOrderResult({
+      order_id: 42,
+      amount: 10,
+      base_amount: 10,
+      pay_amount: 10.01,
+      currency: 'MYR',
+      payment_type: 'mudahpay',
+      qr_code: 'duitnow-qr',
+    }), {
+      visibleMethod: 'mudahpay',
+      orderType: 'balance',
+      isMobile: false,
+    })
+
+    expect(decision.kind).toBe('qr_waiting')
+    expect(decision.recovery).toMatchObject({
+      baseAmount: 10,
+      payAmount: 10.01,
+      exactAmountAcknowledged: false,
+    })
+  })
+
   it('uses Stripe popup waiting flow for desktop Alipay client secret', () => {
     const decision = decidePaymentLaunch(createOrderResult({
       client_secret: 'cs_test',
@@ -333,6 +359,60 @@ describe('buildCreateOrderPayload', () => {
 })
 
 describe('readPaymentRecoverySnapshot', () => {
+  it('restores amount and false acknowledgement defaults from legacy snapshots', () => {
+    const legacySnapshot = {
+      orderId: 32,
+      amount: 10.01,
+      qrCode: 'duitnow-qr',
+      expiresAt: '2099-01-01T00:10:00.000Z',
+      paymentType: 'mudahpay',
+      payUrl: '',
+      outTradeNo: '',
+      clientSecret: '',
+      intentId: '',
+      currency: 'MYR',
+      countryCode: 'MY',
+      paymentEnv: '',
+      payAmount: 10.01,
+      orderType: 'balance',
+      paymentMode: 'qrcode',
+      resumeToken: '',
+      createdAt: Date.UTC(2099, 0, 1, 0, 0, 0),
+    }
+
+    const restored = readPaymentRecoverySnapshot(JSON.stringify(legacySnapshot), {
+      now: Date.UTC(2099, 0, 1, 0, 1, 0),
+    })
+
+    expect(restored?.baseAmount).toBe(legacySnapshot.amount)
+    expect(restored?.exactAmountAcknowledged).toBe(false)
+  })
+
+  it('rejects snapshots with a non-boolean exact amount acknowledgement', () => {
+    expect(readPaymentRecoverySnapshot(JSON.stringify({
+      orderId: 32,
+      amount: 10.01,
+      qrCode: 'duitnow-qr',
+      expiresAt: '2099-01-01T00:10:00.000Z',
+      paymentType: 'mudahpay',
+      payUrl: '',
+      outTradeNo: '',
+      clientSecret: '',
+      intentId: '',
+      currency: 'MYR',
+      countryCode: 'MY',
+      paymentEnv: '',
+      payAmount: 10.01,
+      orderType: 'balance',
+      paymentMode: 'qrcode',
+      resumeToken: '',
+      createdAt: Date.UTC(2099, 0, 1, 0, 0, 0),
+      exactAmountAcknowledged: 'true',
+    }), {
+      now: Date.UTC(2099, 0, 1, 0, 1, 0),
+    })).toBeNull()
+  })
+
   it('restores an unexpired snapshot when the resume token matches', () => {
     const snapshot: PaymentRecoverySnapshot = {
       orderId: 33,

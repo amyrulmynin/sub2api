@@ -16,9 +16,10 @@ const VISIBLE_METHOD_ALIASES = {
   wxpay_direct: 'wxpay',
   stripe: 'stripe',
   airwallex: 'airwallex',
+  mudahpay: 'mudahpay',
 } as const
 
-export type VisiblePaymentMethod = 'alipay' | 'wxpay' | 'stripe' | 'airwallex'
+export type VisiblePaymentMethod = 'alipay' | 'wxpay' | 'stripe' | 'airwallex' | 'mudahpay'
 export type StripeVisibleMethod = 'alipay' | 'wechat_pay'
 export type PaymentLaunchKind =
   | 'qr_waiting'
@@ -33,6 +34,7 @@ export type PaymentLaunchKind =
 export interface PaymentRecoverySnapshot {
   orderId: number
   amount: number
+  baseAmount?: number
   qrCode: string
   expiresAt: string
   paymentType: string
@@ -44,6 +46,7 @@ export interface PaymentRecoverySnapshot {
   countryCode: string
   paymentEnv: string
   payAmount: number
+  exactAmountAcknowledged?: boolean
   orderType: OrderType | ''
   paymentMode: string
   resumeToken: string
@@ -148,6 +151,7 @@ export function decidePaymentLaunch(
   const baseState = createPaymentRecoverySnapshot({
     orderId: result.order_id,
     amount: result.amount,
+    baseAmount: result.base_amount ?? result.amount,
     qrCode: result.qr_code || '',
     expiresAt: result.expires_at || '',
     paymentType: visibleMethod,
@@ -159,6 +163,7 @@ export function decidePaymentLaunch(
     countryCode: result.country_code || '',
     paymentEnv: result.payment_env || '',
     payAmount: result.pay_amount,
+    exactAmountAcknowledged: false,
     orderType: context.orderType,
     paymentMode: (result.payment_mode || '').trim(),
     resumeToken: result.resume_token || '',
@@ -266,6 +271,7 @@ export function readPaymentRecoverySnapshot(
     if (
       typeof parsed.orderId !== 'number'
       || typeof parsed.amount !== 'number'
+      || (parsed.baseAmount != null && typeof parsed.baseAmount !== 'number')
       || typeof parsed.qrCode !== 'string'
       || typeof parsed.expiresAt !== 'string'
       || typeof parsed.paymentType !== 'string'
@@ -277,6 +283,7 @@ export function readPaymentRecoverySnapshot(
       || (parsed.countryCode != null && typeof parsed.countryCode !== 'string')
       || (parsed.paymentEnv != null && typeof parsed.paymentEnv !== 'string')
       || typeof parsed.payAmount !== 'number'
+      || (parsed.exactAmountAcknowledged != null && typeof parsed.exactAmountAcknowledged !== 'boolean')
       || typeof parsed.paymentMode !== 'string'
       || typeof parsed.resumeToken !== 'string'
       || typeof parsed.createdAt !== 'number'
@@ -296,6 +303,7 @@ export function readPaymentRecoverySnapshot(
     return {
       orderId: parsed.orderId,
       amount: parsed.amount,
+      baseAmount: parsed.baseAmount ?? parsed.amount,
       qrCode: parsed.qrCode,
       expiresAt: parsed.expiresAt,
       paymentType: parsed.paymentType,
@@ -307,6 +315,7 @@ export function readPaymentRecoverySnapshot(
       countryCode: parsed.countryCode || '',
       paymentEnv: parsed.paymentEnv || '',
       payAmount: parsed.payAmount,
+      exactAmountAcknowledged: parsed.exactAmountAcknowledged === true,
       orderType: parsed.orderType === 'subscription' ? 'subscription' : 'balance',
       paymentMode: parsed.paymentMode,
       resumeToken: parsed.resumeToken,

@@ -22,6 +22,10 @@
             :pay-url="paymentState.payUrl"
             :order-type="paymentState.orderType"
             :currency="paymentState.currency || selectedCurrency"
+            :amount="paymentState.baseAmount ?? paymentState.amount"
+            :pay-amount="paymentState.payAmount"
+            :exact-amount-acknowledged="paymentState.exactAmountAcknowledged === true"
+            @exact-amount-acknowledged="onExactAmountAcknowledged"
             @done="onPaymentDone"
             @success="onPaymentSuccess"
             @settled="onPaymentSettled"
@@ -346,6 +350,7 @@ function emptyPaymentState(): PaymentRecoverySnapshot {
   return {
     orderId: 0,
     amount: 0,
+    baseAmount: 0,
     qrCode: '',
     expiresAt: '',
     paymentType: '',
@@ -357,6 +362,7 @@ function emptyPaymentState(): PaymentRecoverySnapshot {
     countryCode: '',
     paymentEnv: '',
     payAmount: 0,
+    exactAmountAcknowledged: false,
     orderType: '',
     paymentMode: '',
     resumeToken: '',
@@ -490,6 +496,16 @@ function onPaymentSuccess() {
 
 function onPaymentSettled() {
   removeRecoverySnapshot()
+}
+
+function onExactAmountAcknowledged(orderId: number) {
+  if (paymentState.value.orderId !== orderId) return
+  const snapshot: PaymentRecoverySnapshot = {
+    ...paymentState.value,
+    exactAmountAcknowledged: true,
+  }
+  paymentState.value = snapshot
+  persistRecoverySnapshot(snapshot)
 }
 
 // All checkout data from single API call

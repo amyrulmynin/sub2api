@@ -197,6 +197,7 @@ export interface WechatJSAPIPayload {
 export interface CreateOrderResult {
   order_id: number
   amount: number
+  base_amount?: number
   pay_url?: string
   qr_code?: string
   client_secret?: string

@@ -132,6 +132,10 @@ func (m *MudahPay) CreatePayment(ctx context.Context, req payment.CreatePaymentR
 		return nil, fmt.Errorf("mudahpay create transaction failed: %s", msg)
 	}
 
+	baseSen := resp.Data.BaseAmount
+	if baseSen <= 0 {
+		baseSen = sen
+	}
 	finalSen := resp.Data.UniqueAmount
 	if finalSen <= 0 {
 		finalSen = sen
@@ -141,10 +145,11 @@ func (m *MudahPay) CreatePayment(ctx context.Context, req payment.CreatePaymentR
 		qr = strings.TrimSpace(resp.Data.QRIS)
 	}
 	return &payment.CreatePaymentResponse{
-		TradeNo:   resp.Data.ID,
-		QRCode:    qr,
-		PayAmount: payment.MinorUnitToAmount(finalSen, mudahPayCurrency),
-		Currency:  mudahPayCurrency,
+		TradeNo:    resp.Data.ID,
+		QRCode:     qr,
+		BaseAmount: payment.MinorUnitToAmount(baseSen, mudahPayCurrency),
+		PayAmount:  payment.MinorUnitToAmount(finalSen, mudahPayCurrency),
+		Currency:   mudahPayCurrency,
 	}, nil
 }
 

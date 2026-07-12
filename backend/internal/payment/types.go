@@ -148,6 +148,7 @@ type CreatePaymentResponse struct {
 	QRCode       string                  // QR code content for scanning
 	ClientSecret string                  // Stripe PaymentIntent 客户端密钥
 	IntentID     string                  // 前端 SDK 需要的服务商支付意图 ID
+	BaseAmount   float64                 // Provider base amount before a unique-amount adjustment
 	PayAmount    float64                 // Final amount charged by provider, e.g. MudahPay unique amount
 	Currency     string                  // 服务商支付币种
 	CountryCode  string                  // 服务商收银台国家/地区代码

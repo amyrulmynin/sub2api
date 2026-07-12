@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -88,6 +89,36 @@ func TestBuildCreateOrderResponseCopiesJSAPIPayload(t *testing.T) {
 	}
 	if resp.JSAPI != jsapiPayload || resp.JSAPIPayload != jsapiPayload {
 		t.Fatal("expected jsapi aliases to preserve the original pointer")
+	}
+}
+
+func TestBuildCreateOrderResponseCopiesMudahPayAmounts(t *testing.T) {
+	t.Parallel()
+
+	providerResponse := &payment.CreatePaymentResponse{
+		BaseAmount: 10.00,
+		PayAmount:  10.01,
+		Currency:   "MYR",
+		QRCode:     "duitnow-qr",
+	}
+	resp := buildCreateOrderResponse(
+		&dbent.PaymentOrder{Amount: 1.40},
+		CreateOrderRequest{PaymentType: payment.TypeMudahPay},
+		providerResponse.PayAmount,
+		&payment.InstanceSelection{},
+		providerResponse,
+		payment.CreatePaymentResultOrderCreated,
+	)
+
+	if resp.BaseAmount != 10.00 || resp.PayAmount != 10.01 || resp.Currency != "MYR" {
+		t.Fatalf("response = %+v", resp)
+	}
+	body, err := json.Marshal(resp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(body), `"base_amount":10`) {
+		t.Fatalf("response JSON = %s", body)
 	}
 }
 

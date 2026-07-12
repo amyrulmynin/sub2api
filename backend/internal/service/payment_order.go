@@ -457,6 +457,9 @@ func (s *PaymentService) invokeProvider(ctx context.Context, order *dbent.Paymen
 		return nil, classifyCreatePaymentError(req, sel.ProviderKey, err)
 	}
 	sanitizeCreatePaymentResponseDetails(pr)
+	if pr.BaseAmount <= 0 {
+		pr.BaseAmount = payAmount
+	}
 	finalPayAmount := payAmount
 	if pr.PayAmount > 0 {
 		finalPayAmount = pr.PayAmount
@@ -728,6 +731,7 @@ func buildCreateOrderResponse(order *dbent.PaymentOrder, req CreateOrderRequest,
 	return &CreateOrderResponse{
 		OrderID:      order.ID,
 		Amount:       order.Amount,
+		BaseAmount:   pr.BaseAmount,
 		PayAmount:    payAmount,
 		FeeRate:      order.FeeRate,
 		Status:       OrderStatusPending,

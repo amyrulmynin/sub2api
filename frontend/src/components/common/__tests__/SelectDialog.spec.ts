@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
-import { defineComponent, ref } from 'vue'
+import { defineComponent, h, inject, ref, watch } from 'vue'
 import BaseDialog from '../BaseDialog.vue'
 import CommonSelect from '../Select.vue'
+import { dialogPortalKey } from '../dialogPortal'
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: (key: string) => key }),
@@ -14,6 +15,17 @@ const options = Array.from({ length: 6 }, (_, index) => ({
   value: index + 1,
   label: `Option ${index + 1}`,
 }))
+
+function ownerProbe(onChange: (isOwner: boolean) => void) {
+  return defineComponent({
+    setup() {
+      const dialogPortal = inject(dialogPortalKey)
+      if (!dialogPortal) throw new Error('Expected dialog portal context')
+      watch(dialogPortal.isVisualOwner, onChange, { flush: 'sync' })
+      return () => h('span')
+    },
+  })
+}
 
 describe('Select in BaseDialog', () => {
   afterEach(() => {
@@ -96,11 +108,12 @@ describe('Select in BaseDialog', () => {
 
     const outerDropdown = document.querySelector<HTMLElement>('.select-dropdown-portal')
     if (outerDropdown) {
+      expect(outerDropdown.classList.contains('select-dropdown-inactive')).toBe(true)
       expect({
         ariaHidden: outerDropdown.getAttribute('aria-hidden'),
-        inert: outerDropdown.hasAttribute('inert'),
-        pointerEvents: outerDropdown.style.pointerEvents,
-      }).toEqual({ ariaHidden: 'true', inert: true, pointerEvents: 'none' })
+        optionPointerEvents: getComputedStyle(staleOption).pointerEvents,
+        pointerEvents: getComputedStyle(outerDropdown).pointerEvents,
+      }).toEqual({ ariaHidden: 'true', optionPointerEvents: 'none', pointerEvents: 'none' })
     }
     staleOption.click()
     expect(value.value).toBeNull()
@@ -127,15 +140,18 @@ describe('Select in BaseDialog', () => {
 
   it('keeps the painted owner active during an equal-z dialog reopen', async () => {
     const showFirst = ref(true)
+    const ownerStates: boolean[] = []
+    const OwnerProbe = ownerProbe(isOwner => ownerStates.push(isOwner))
     mount(defineComponent({
-      components: { BaseDialog, CommonSelect },
+      components: { BaseDialog, CommonSelect, OwnerProbe },
       setup: () => ({ options, showFirst, value: ref(null) }),
       template: `
         <BaseDialog :show="showFirst" title="First" :show-close-button="false">
-          <button>First action</button>
+          <button data-test="first-action">First action</button>
         </BaseDialog>
         <BaseDialog :show="true" title="Second" :show-close-button="false">
           <CommonSelect v-model="value" :options="options" />
+          <OwnerProbe />
         </BaseDialog>
       `,
     }), {
@@ -150,11 +166,65 @@ describe('Select in BaseDialog', () => {
     await flushPromises()
     expect(document.querySelector('.select-dropdown-portal')).not.toBeNull()
 
+    const firstOverlay = document.querySelector<HTMLElement>('[data-test="first-action"]')?.closest('.modal-overlay')
+    if (!firstOverlay) throw new Error('Expected first dialog overlay')
     showFirst.value = false
     await flushPromises()
+    firstOverlay.remove()
+    expect(firstOverlay.isConnected).toBe(false)
+
+    ownerStates.length = 0
     showFirst.value = true
     await flushPromises()
 
+    expect(ownerStates).not.toContain(false)
     expect(document.querySelector('.select-dropdown-portal')).not.toBeNull()
+  })
+
+  it('transfers ownership when a disconnected higher-z dialog connects', async () => {
+    const showInner = ref(false)
+    const ownerLossOverlayStates: boolean[] = []
+    const OwnerProbe = ownerProbe(isOwner => {
+      if (!isOwner) {
+        const highOverlay = document.querySelector<HTMLElement>('[data-test="high-action"]')?.closest('.modal-overlay')
+        ownerLossOverlayStates.push(highOverlay?.isConnected === true)
+      }
+    })
+    mount(defineComponent({
+      components: { BaseDialog, CommonSelect, OwnerProbe },
+      setup: () => ({ options, showInner, value: ref(null) }),
+      template: `
+        <BaseDialog :show="true" title="Outer" :show-close-button="false">
+          <CommonSelect v-model="value" :options="options" />
+          <OwnerProbe />
+        </BaseDialog>
+        <BaseDialog :show="showInner" title="Inner" :show-close-button="false" :z-index="80">
+          <button data-test="high-action">High action</button>
+        </BaseDialog>
+      `,
+    }), {
+      attachTo: document.body,
+      global: { stubs: { Icon: true } },
+    })
+    await flushPromises()
+
+    const trigger = document.querySelector<HTMLButtonElement>('.select-trigger')
+    if (!trigger) throw new Error('Expected outer Select trigger')
+    trigger.click()
+    await flushPromises()
+    expect(document.querySelector('.select-dropdown-portal')).not.toBeNull()
+
+    showInner.value = true
+    await flushPromises()
+
+    const highAction = document.querySelector<HTMLButtonElement>('[data-test="high-action"]')
+    if (!highAction) throw new Error('Expected connected high-z dialog')
+    expect(document.activeElement).toBe(highAction)
+    expect(ownerLossOverlayStates).toEqual([true])
+    const staleDropdown = document.querySelector<HTMLElement>('.select-dropdown-portal')
+    if (staleDropdown) {
+      expect(staleDropdown.getAttribute('aria-hidden')).toBe('true')
+      expect(getComputedStyle(staleDropdown).pointerEvents).toBe('none')
+    }
   })
 })

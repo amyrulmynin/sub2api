@@ -66,7 +66,9 @@ let keydownListening = false
 let focusinListening = false
 
 function getTopDialog(): DialogStackEntry | undefined {
-  return dialogStack.reduce<DialogStackEntry | undefined>((top, entry) => {
+  const connected = dialogStack.filter(entry => entry.getOverlay()?.isConnected)
+  const candidates = connected.length > 0 ? connected : dialogStack
+  return candidates.reduce<DialogStackEntry | undefined>((top, entry) => {
     if (!top || entry.zIndex > top.zIndex) return entry
     if (entry.zIndex < top.zIndex) return top
 
@@ -291,7 +293,7 @@ function registerDialog() {
 
 function unregisterDialog(): { wasTopmost: boolean; restorationRoot: HTMLElement | null } | null {
   if (!stackEntry) return null
-  const wasTopmost = getTopDialog()?.token === dialogToken
+  const wasTopmost = isVisualOwner.value
   const restorationRoot = stackEntry.restorationRoot
   const index = dialogStack.indexOf(stackEntry)
   if (index >= 0) dialogStack.splice(index, 1)
@@ -387,7 +389,9 @@ watch(() => props.zIndex, zIndex => {
   if (nextTop && nextTop.token !== previousTop?.token) nextTop.focusDialog()
 })
 
-watch(overlayRef, () => syncDialogOwnership(), { flush: 'post' })
+watch(overlayRef, overlay => {
+  if (overlay?.isConnected) syncDialogOwnership()
+}, { flush: 'post' })
 
 onUnmounted(() => {
   ownedPortals.clear()

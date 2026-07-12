@@ -50,7 +50,7 @@
           v-if="isOpen"
           ref="dropdownRef"
           class="select-dropdown-portal"
-          :class="[instanceId]"
+          :class="[instanceId, ownerActive ? 'select-dropdown-active' : 'select-dropdown-inactive']"
           :style="dropdownStyle"
           :inert="!ownerActive || undefined"
           :aria-hidden="ownerActive ? undefined : 'true'"
@@ -192,14 +192,9 @@ watch(dropdownRef, (portal, previousPortal) => {
 watch(ownerActive, active => {
   if (active) return
   const portal = dropdownRef.value
-  if (portal) {
-    portal.setAttribute('inert', '')
-    portal.setAttribute('aria-hidden', 'true')
-    portal.style.pointerEvents = 'none'
-    dialogPortal?.unregisterPortal(portal)
-  }
+  if (portal) dialogPortal?.unregisterPortal(portal)
   isOpen.value = false
-}, { flush: 'sync' })
+}, { flush: 'post' })
 
 // i18n placeholders
 const placeholderText = computed(() => props.placeholder ?? t('common.selectOption'))
@@ -213,17 +208,16 @@ const isSearchable = computed(() => {
 
 // Computed style for teleported dropdown
 const dropdownStyle = computed(() => {
-  if (!triggerRect.value) return {}
+  const style: Record<string, string> = {
+    pointerEvents: ownerActive.value ? 'auto' : 'none'
+  }
+  if (!triggerRect.value) return style
 
   const rect = triggerRect.value
-  const style: Record<string, string> = {
-    position: 'fixed',
-    left: `${rect.left}px`,
-    minWidth: `${rect.width}px`,
-    zIndex: '100000020'
-  }
-  if (!ownerActive.value) style.pointerEvents = 'none'
-
+  style.position = 'fixed'
+  style.left = `${rect.left}px`
+  style.minWidth = `${rect.width}px`
+  style.zIndex = '100000020'
   if (dropdownPosition.value === 'top') {
     style.bottom = `${window.innerHeight - rect.top + 4}px`
   } else {
@@ -526,7 +520,12 @@ onUnmounted(() => {
   @apply border border-gray-200 dark:border-dark-700;
   @apply shadow-lg shadow-black/10 dark:shadow-black/30;
   @apply overflow-hidden;
-  pointer-events: auto !important;
+  pointer-events: auto;
+}
+
+.select-dropdown-portal.select-dropdown-inactive,
+.select-dropdown-portal.select-dropdown-inactive * {
+  pointer-events: none;
 }
 
 .select-dropdown-portal .select-search {
@@ -551,7 +550,6 @@ onUnmounted(() => {
   @apply text-gray-700 dark:text-gray-300;
   @apply cursor-pointer transition-colors duration-150;
   @apply hover:bg-gray-50 dark:hover:bg-dark-700;
-  pointer-events: auto !important;
 }
 
 .select-dropdown-portal .select-option-selected {

@@ -363,6 +363,13 @@ export default {
       cancelledDesc: '您已取消本次支付',
       waitingPayment: '等待支付...',
       cancelOrder: '取消订单',
+      exactAmountTitle: '请支付准确金额',
+      exactAmountPay: '请准确支付 {amount}',
+      exactAmountDoNotPay: '请勿支付 {amount}。',
+      exactAmountExplanation: '支付其他金额可能导致系统无法自动对账。',
+      exactAmountAcknowledge: '我已了解，显示二维码',
+      exactAmountCheck: '确认 DuitNow 支付前请再次核对金额。',
+      exactAmountNotCheck: '不是 {amount}。确认 DuitNow 支付前请再次核对金额。',
     },
     orders: {
       title: '我的订单',

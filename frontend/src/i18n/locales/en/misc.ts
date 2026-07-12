@@ -339,6 +339,13 @@ export default {
       cancelledDesc: 'You have cancelled this payment.',
       waitingPayment: 'Waiting for payment...',
       cancelOrder: 'Cancel Order',
+      exactAmountTitle: 'Pay the exact amount',
+      exactAmountPay: 'Pay exactly {amount}',
+      exactAmountDoNotPay: 'Do not pay {amount}.',
+      exactAmountExplanation: 'Paying a different amount may prevent automatic reconciliation.',
+      exactAmountAcknowledge: 'I understand, show the QR code',
+      exactAmountCheck: 'Check the amount before confirming DuitNow.',
+      exactAmountNotCheck: 'Not {amount}. Check the amount before confirming DuitNow.',
     },
     orders: {
       title: 'My Orders',

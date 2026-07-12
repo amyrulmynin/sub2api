@@ -6,6 +6,7 @@ describe('formatPaymentAmount', () => {
     expect(formatPaymentAmount(100, 'JPY', 'en-US')).not.toContain('.00')
     expect(formatPaymentAmount(100, 'KRW', 'en-US')).not.toContain('.00')
     expect(formatPaymentAmount(100, 'HKD', 'en-US')).toContain('.00')
+    expect(formatPaymentAmount(10.01, 'MYR', 'en-MY')).toMatch(/RM\s?10\.01/)
   })
 })
 
@@ -14,6 +15,7 @@ describe('currencySymbol', () => {
     expect(currencySymbol('USD')).toBe('$')
     expect(currencySymbol('cny')).toBe('¥')
     expect(currencySymbol('EUR')).toBe('€')
+    expect(currencySymbol('MYR')).toBe('RM')
     expect(currencySymbol('')).toBe('¥')
     expect(currencySymbol('XYZ')).toBe('XYZ')
   })

@@ -1,5 +1,35 @@
 <template>
   <div class="space-y-4">
+    <BaseDialog
+      :show="showExactAmountDialog"
+      :title="t('payment.qr.exactAmountTitle')"
+      width="narrow"
+      :close-on-escape="false"
+      :close-on-click-outside="false"
+      :show-close-button="false"
+    >
+      <div class="flex min-w-0 flex-col items-center text-center">
+        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-2xl font-bold text-amber-700 dark:bg-amber-900/40 dark:text-amber-200" aria-hidden="true">!</div>
+        <p class="mt-4 max-w-full break-words text-4xl font-black tabular-nums text-emerald-700 dark:text-emerald-300">{{ formattedExactAmount }}</p>
+        <p v-if="amountDiffers" class="mt-3 font-semibold text-amber-800 dark:text-amber-200">
+          {{ t('payment.qr.exactAmountDoNotPay', { amount: formattedBaseAmount }) }}
+        </p>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+          {{ t('payment.qr.exactAmountExplanation') }}
+        </p>
+      </div>
+      <template #footer>
+        <button
+          type="button"
+          data-test="acknowledge-exact-amount"
+          class="btn btn-primary min-h-11 w-full"
+          @click="acknowledgeExactAmount"
+        >
+          {{ t('payment.qr.exactAmountAcknowledge') }}
+        </button>
+      </template>
+    </BaseDialog>
+
     <!-- ═══ Terminal States: show result, user clicks to return ═══ -->
 
     <!-- Success -->
@@ -70,7 +100,21 @@
     <!-- ═══ Active States: QR or Popup waiting ═══ -->
 
     <!-- QR Code Mode -->
-    <template v-else-if="qrUrl">
+    <template v-else-if="qrUrl && !showExactAmountDialog">
+      <div
+        v-if="isMudahPay && hasValidExactAmount"
+        role="alert"
+        class="w-full min-w-0 rounded-xl border border-amber-400 bg-amber-50 p-4 text-center dark:border-amber-500 dark:bg-amber-950/30"
+      >
+        <p class="break-words text-lg font-extrabold text-amber-900 dark:text-amber-100">
+          {{ t('payment.qr.exactAmountPay', { amount: formattedExactAmount }) }}
+        </p>
+        <p class="mt-1 break-words text-sm text-amber-800 dark:text-amber-200">
+          {{ amountDiffers
+            ? t('payment.qr.exactAmountNotCheck', { amount: formattedBaseAmount })
+            : t('payment.qr.exactAmountCheck') }}
+        </p>
+      </div>
       <div class="card p-6">
         <div class="flex flex-col items-center space-y-4">
           <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ scanTitle }}</p>
@@ -131,6 +175,7 @@ import { extractI18nErrorMessage } from '@/utils/apiError'
 import { getPaymentPopupFeatures, isBuiltInAlipayMethod, isBuiltInWxpayMethod } from '@/components/payment/providerConfig'
 import { formatPaymentAmount, normalizePaymentCurrency } from '@/components/payment/currency'
 import type { PaymentOrder } from '@/types/payment'
+import BaseDialog from '@/components/common/BaseDialog.vue'
 import Icon from '@/components/icons/Icon.vue'
 import QRCode from 'qrcode'
 import { PRODUCT_CURRENCY_SYMBOL } from '@/utils/format'
@@ -146,11 +191,19 @@ const props = defineProps<{
   payUrl?: string
   orderType?: string
   currency?: string
+  amount?: number
+  payAmount?: number
+  exactAmountAcknowledged?: boolean
 }>()
 
 type PaymentOutcome = 'success' | 'cancelled' | 'expired'
 
-const emit = defineEmits<{ done: []; success: []; settled: [outcome: PaymentOutcome] }>()
+const emit = defineEmits<{
+  done: []
+  success: []
+  settled: [outcome: PaymentOutcome]
+  exactAmountAcknowledged: [orderId: number]
+}>()
 
 const i18n = useI18n()
 const { t } = i18n
@@ -162,7 +215,26 @@ const qrUrl = ref('')
 const remainingSeconds = ref(0)
 const cancelling = ref(false)
 const paidOrder = ref<PaymentOrder | null>(null)
-const paymentCurrency = computed(() => normalizePaymentCurrency(props.currency))
+const isMudahPay = computed(() => props.paymentType.trim().toLowerCase() === 'mudahpay')
+const hasValidExactAmount = computed(() => (
+  typeof props.payAmount === 'number'
+  && Number.isFinite(props.payAmount)
+  && props.payAmount > 0
+))
+const showExactAmountDialog = computed(() => (
+  isMudahPay.value && hasValidExactAmount.value && props.exactAmountAcknowledged !== true
+))
+const amountDiffers = computed(() => (
+  typeof props.amount === 'number'
+  && Number.isFinite(props.amount)
+  && typeof props.payAmount === 'number'
+  && Math.round(props.amount * 100) !== Math.round(props.payAmount * 100)
+))
+const paymentCurrency = computed(() => normalizePaymentCurrency(
+  props.currency || (isMudahPay.value ? 'MYR' : undefined),
+))
+const formattedExactAmount = computed(() => formatGatewayAmount(Number(props.payAmount), paymentCurrency.value))
+const formattedBaseAmount = computed(() => formatGatewayAmount(Number(props.amount), paymentCurrency.value))
 const creditedAmountSymbol = PRODUCT_CURRENCY_SYMBOL
 const localeCode = computed(() => {
   const raw = i18n.locale as unknown
@@ -248,11 +320,15 @@ function setOutcome(next: PaymentOutcome) {
 
 async function renderQR() {
   await nextTick()
-  if (!qrCanvas.value || !qrUrl.value) return
+  if (showExactAmountDialog.value || !qrCanvas.value || !qrUrl.value) return
   await QRCode.toCanvas(qrCanvas.value, qrUrl.value, {
     width: 220, margin: 2,
     errorCorrectionLevel: 'M',
   })
+}
+
+function acknowledgeExactAmount() {
+  emit('exactAmountAcknowledged', props.orderId)
 }
 
 async function tryRecoverPendingOrder(order: PaymentOrder): Promise<PaymentOrder> {
@@ -348,6 +424,6 @@ startCountdown(seconds)
 pollTimer = setInterval(pollStatus, 3000)
 renderQR()
 
-watch(() => qrUrl.value, () => renderQR())
+watch([qrUrl, () => props.exactAmountAcknowledged], () => renderQR())
 onUnmounted(() => cleanup())
 </script>

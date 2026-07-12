@@ -12,7 +12,10 @@ vi.mock('vue-i18n', async () => {
   return {
     ...actual,
     useI18n: () => ({
-      t: (key: string) => key,
+      t: (key: string, params?: Record<string, unknown>) => {
+        const values = params ? Object.values(params) : []
+        return values.length ? `${key} ${values.join(' ')}` : key
+      },
     }),
   }
 })
@@ -43,6 +46,7 @@ vi.mock('qrcode', () => ({
 }))
 
 import PaymentStatusPanel from '../PaymentStatusPanel.vue'
+import BaseDialog from '@/components/common/BaseDialog.vue'
 
 const orderFactory = (status: string) => ({
   id: 42,
@@ -60,6 +64,17 @@ const orderFactory = (status: string) => ({
 })
 
 describe('PaymentStatusPanel', () => {
+  const exactAmountProps = {
+    orderId: 42,
+    qrCode: 'duitnow-qr',
+    expiresAt: '2099-01-01T12:30:00Z',
+    paymentType: 'mudahpay',
+    currency: 'MYR',
+    amount: 10,
+    payAmount: 10.01,
+    exactAmountAcknowledged: false,
+  }
+
   beforeEach(() => {
     vi.useFakeTimers()
     pollOrderStatus.mockReset()
@@ -152,6 +167,137 @@ describe('PaymentStatusPanel', () => {
 
     expect(wrapper.text()).toContain('payment.qr.scanToPay')
     expect(wrapper.text()).not.toContain('payment.qr.scanAlipay')
+  })
+
+  it('blocks MudahPay QR until exact amount is acknowledged', async () => {
+    const wrapper = mount(PaymentStatusPanel, {
+      props: exactAmountProps,
+      attachTo: document.body,
+      global: { stubs: { Icon: true, teleport: true } },
+    })
+
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('payment.qr.exactAmountTitle')
+    expect(wrapper.text()).toMatch(/RM\s?10\.01/)
+    expect(wrapper.text()).toMatch(/RM\s?10\.00/)
+    expect(wrapper.find('canvas').exists()).toBe(false)
+    expect(toCanvas).not.toHaveBeenCalled()
+
+    const acknowledgeButton = wrapper.get('[data-test="acknowledge-exact-amount"]')
+    expect(document.activeElement).toBe(acknowledgeButton.element)
+    await acknowledgeButton.trigger('click')
+    expect(wrapper.emitted('exactAmountAcknowledged')).toEqual([[42]])
+
+    wrapper.unmount()
+  })
+
+  it('renders acknowledged MudahPay QR with a persistent exact amount warning', async () => {
+    const wrapper = mount(PaymentStatusPanel, {
+      props: { ...exactAmountProps, exactAmountAcknowledged: true },
+      global: { stubs: { Icon: true, teleport: true } },
+    })
+
+    await flushPromises()
+
+    const warning = wrapper.get('[role="alert"]')
+    expect(warning.text()).toContain('payment.qr.exactAmountPay')
+    expect(warning.text()).toMatch(/RM\s?10\.01/)
+    expect(warning.text()).toContain('payment.qr.exactAmountNotCheck')
+    expect(warning.text()).toMatch(/RM\s?10\.00/)
+    expect(wrapper.find('canvas').exists()).toBe(true)
+    expect(toCanvas).toHaveBeenCalled()
+  })
+
+  it('shows the exact amount but omits the do-not-pay line when cent amounts match', async () => {
+    const wrapper = mount(PaymentStatusPanel, {
+      props: { ...exactAmountProps, amount: 10.004, payAmount: 10.001 },
+      global: { stubs: { Icon: true, teleport: true } },
+    })
+
+    await flushPromises()
+
+    expect(wrapper.text()).toMatch(/RM\s?10\.00/)
+    expect(wrapper.text()).not.toContain('payment.qr.exactAmountDoNotPay')
+  })
+
+  it.each([undefined, 0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
+    'does not show a misleading exact amount modal for invalid payAmount %s',
+    async (payAmount) => {
+      const wrapper = mount(PaymentStatusPanel, {
+        props: { ...exactAmountProps, payAmount },
+        global: { stubs: { Icon: true, teleport: true } },
+      })
+
+      await flushPromises()
+
+      expect(wrapper.text()).not.toContain('payment.qr.exactAmountTitle')
+      expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+      expect(wrapper.find('canvas').exists()).toBe(true)
+      expect(toCanvas).toHaveBeenCalled()
+    },
+  )
+
+  it('defaults missing MudahPay currency to MYR', async () => {
+    const wrapper = mount(PaymentStatusPanel, {
+      props: { ...exactAmountProps, currency: undefined },
+      global: { stubs: { Icon: true, teleport: true } },
+    })
+
+    await flushPromises()
+
+    expect(wrapper.text()).toMatch(/RM\s?10\.01/)
+    expect(wrapper.text()).toMatch(/RM\s?10\.00/)
+  })
+
+  it.each(['alipay', 'custom_mudahpay'])(
+    'renders non-MudahPay type %s immediately without an exact amount warning',
+    async (paymentType) => {
+      const wrapper = mount(PaymentStatusPanel, {
+        props: { ...exactAmountProps, paymentType },
+        global: { stubs: { Icon: true, teleport: true } },
+      })
+
+      await flushPromises()
+
+      expect(wrapper.text()).not.toContain('payment.qr.exactAmountTitle')
+      expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+      expect(wrapper.find('canvas').exists()).toBe(true)
+      expect(toCanvas).toHaveBeenCalled()
+    },
+  )
+
+  it('normalizes MudahPay type before applying the exact amount gate', async () => {
+    const wrapper = mount(PaymentStatusPanel, {
+      props: { ...exactAmountProps, paymentType: ' MudahPay ' },
+      global: { stubs: { Icon: true, teleport: true } },
+    })
+
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('payment.qr.exactAmountTitle')
+    expect(toCanvas).not.toHaveBeenCalled()
+  })
+
+  it('has no close, Escape, or backdrop dismissal route', async () => {
+    const wrapper = mount(PaymentStatusPanel, {
+      props: exactAmountProps,
+      global: { stubs: { Icon: true, teleport: true } },
+    })
+
+    await flushPromises()
+
+    const dialog = wrapper.getComponent(BaseDialog)
+    expect(document.querySelector('[aria-label="Close modal"]')).toBeNull()
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    document.querySelector<HTMLElement>('.modal-overlay')?.click()
+    await flushPromises()
+
+    expect(dialog.emitted('close')).toBeUndefined()
+    expect(wrapper.find('[data-test="acknowledge-exact-amount"]').exists()).toBe(true)
+
+    wrapper.unmount()
   })
 
   it('actively verifies a stuck pending order and settles it when upstream confirms payment', async () => {

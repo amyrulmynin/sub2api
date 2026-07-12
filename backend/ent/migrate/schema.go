@@ -537,7 +537,7 @@ var (
 		{Name: "estimated_cost", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(20,10)"}},
 		{Name: "hold_amount", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(20,10)"}},
 		{Name: "actual_cost", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(20,10)"}},
-		{Name: "currency", Type: field.TypeString, Size: 16, Default: "USD"},
+		{Name: "currency", Type: field.TypeString, Size: 16, Default: "MYR"},
 		{Name: "hold_id", Type: field.TypeString, Nullable: true, Size: 128},
 		{Name: "idempotency_key", Type: field.TypeString, Nullable: true, Size: 255},
 		{Name: "request_hash", Type: field.TypeString, Nullable: true, Size: 128},

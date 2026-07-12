@@ -1350,6 +1350,7 @@ func (h *GatewayHandler) usageQuotaLimited(c *gin.Context, ctx context.Context, 
 		"mode":    "quota_limited",
 		"isValid": apiKey.Status == service.StatusAPIKeyActive || apiKey.Status == service.StatusAPIKeyQuotaExhausted || apiKey.Status == service.StatusAPIKeyExpired,
 		"status":  apiKey.Status,
+		"unit":    "MYR",
 	}
 
 	// 总额度信息
@@ -1362,7 +1363,6 @@ func (h *GatewayHandler) usageQuotaLimited(c *gin.Context, ctx context.Context, 
 			"unit":      "MYR",
 		}
 		resp["remaining"] = remaining
-		resp["unit"] = "MYR"
 	}
 
 	// 速率限制信息（从 DB 获取实时用量）
@@ -1378,6 +1378,7 @@ func (h *GatewayHandler) usageQuotaLimited(c *gin.Context, ctx context.Context, 
 					"used":         used,
 					"remaining":    max(0, apiKey.RateLimit5h-used),
 					"window_start": rateLimitData.Window5hStart,
+					"unit":         "MYR",
 				}
 				if rateLimitData.Window5hStart != nil && !service.IsWindowExpired(rateLimitData.Window5hStart, service.RateLimitWindow5h) {
 					entry["reset_at"] = rateLimitData.Window5hStart.Add(service.RateLimitWindow5h)
@@ -1392,6 +1393,7 @@ func (h *GatewayHandler) usageQuotaLimited(c *gin.Context, ctx context.Context, 
 					"used":         used,
 					"remaining":    max(0, apiKey.RateLimit1d-used),
 					"window_start": rateLimitData.Window1dStart,
+					"unit":         "MYR",
 				}
 				if rateLimitData.Window1dStart != nil && !service.IsWindowExpired(rateLimitData.Window1dStart, service.RateLimitWindow1d) {
 					entry["reset_at"] = rateLimitData.Window1dStart.Add(service.RateLimitWindow1d)
@@ -1406,6 +1408,7 @@ func (h *GatewayHandler) usageQuotaLimited(c *gin.Context, ctx context.Context, 
 					"used":         used,
 					"remaining":    max(0, apiKey.RateLimit7d-used),
 					"window_start": rateLimitData.Window7dStart,
+					"unit":         "MYR",
 				}
 				if rateLimitData.Window7dStart != nil && !service.IsWindowExpired(rateLimitData.Window7dStart, service.RateLimitWindow7d) {
 					entry["reset_at"] = rateLimitData.Window7dStart.Add(service.RateLimitWindow7d)

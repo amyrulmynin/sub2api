@@ -359,6 +359,83 @@ describe('buildCreateOrderPayload', () => {
 })
 
 describe('readPaymentRecoverySnapshot', () => {
+  const validSnapshot = {
+    orderId: 32,
+    amount: 10.01,
+    baseAmount: 10,
+    qrCode: 'duitnow-qr',
+    expiresAt: '2099-01-01T00:10:00.000Z',
+    paymentType: 'mudahpay',
+    payUrl: '',
+    outTradeNo: '',
+    clientSecret: '',
+    intentId: '',
+    currency: 'MYR',
+    countryCode: 'MY',
+    paymentEnv: '',
+    payAmount: 10.01,
+    exactAmountAcknowledged: false,
+    orderType: 'balance',
+    paymentMode: 'qrcode',
+    resumeToken: '',
+    createdAt: Date.UTC(2099, 0, 1, 0, 0, 0),
+  }
+
+  it.each(['orderId', 'amount', 'baseAmount', 'payAmount', 'createdAt'])(
+    'rejects exponent-overflow %s values',
+    (field) => {
+      const raw = JSON.stringify(validSnapshot).replace(
+        new RegExp(`("${field}":)[^,}]+`),
+        '$1' + '1e400',
+      )
+
+      expect(readPaymentRecoverySnapshot(raw, {
+        now: Date.UTC(2099, 0, 1, 0, 1, 0),
+      })).toBeNull()
+    },
+  )
+
+  it.each([0, 1.5])('rejects non-positive-integer order ID %s', (orderId) => {
+    expect(readPaymentRecoverySnapshot(JSON.stringify({
+      ...validSnapshot,
+      orderId,
+    }), {
+      now: Date.UTC(2099, 0, 1, 0, 1, 0),
+    })).toBeNull()
+  })
+
+  it.each(['baseAmount', 'exactAmountAcknowledged'])(
+    'rejects explicit null for optional field %s',
+    (field) => {
+      expect(readPaymentRecoverySnapshot(JSON.stringify({
+        ...validSnapshot,
+        [field]: null,
+      }), {
+        now: Date.UTC(2099, 0, 1, 0, 1, 0),
+      })).toBeNull()
+    },
+  )
+
+  it('accepts finite zero amount and timestamp fields', () => {
+    const restored = readPaymentRecoverySnapshot(JSON.stringify({
+      ...validSnapshot,
+      amount: 0,
+      baseAmount: 0,
+      payAmount: 0,
+      createdAt: 0,
+    }), {
+      now: Date.UTC(2099, 0, 1, 0, 1, 0),
+    })
+
+    expect(restored).toMatchObject({
+      orderId: 32,
+      amount: 0,
+      baseAmount: 0,
+      payAmount: 0,
+      createdAt: 0,
+    })
+  })
+
   it('restores amount and false acknowledgement defaults from legacy snapshots', () => {
     const legacySnapshot = {
       orderId: 32,

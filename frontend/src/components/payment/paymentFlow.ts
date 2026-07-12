@@ -270,8 +270,14 @@ export function readPaymentRecoverySnapshot(
     const parsed = JSON.parse(raw) as Partial<PaymentRecoverySnapshot>
     if (
       typeof parsed.orderId !== 'number'
+      || !Number.isFinite(parsed.orderId)
+      || !Number.isInteger(parsed.orderId)
+      || parsed.orderId <= 0
       || typeof parsed.amount !== 'number'
-      || (parsed.baseAmount != null && typeof parsed.baseAmount !== 'number')
+      || !Number.isFinite(parsed.amount)
+      || (parsed.baseAmount !== undefined && (
+        typeof parsed.baseAmount !== 'number' || !Number.isFinite(parsed.baseAmount)
+      ))
       || typeof parsed.qrCode !== 'string'
       || typeof parsed.expiresAt !== 'string'
       || typeof parsed.paymentType !== 'string'
@@ -283,10 +289,12 @@ export function readPaymentRecoverySnapshot(
       || (parsed.countryCode != null && typeof parsed.countryCode !== 'string')
       || (parsed.paymentEnv != null && typeof parsed.paymentEnv !== 'string')
       || typeof parsed.payAmount !== 'number'
-      || (parsed.exactAmountAcknowledged != null && typeof parsed.exactAmountAcknowledged !== 'boolean')
+      || !Number.isFinite(parsed.payAmount)
+      || (parsed.exactAmountAcknowledged !== undefined && typeof parsed.exactAmountAcknowledged !== 'boolean')
       || typeof parsed.paymentMode !== 'string'
       || typeof parsed.resumeToken !== 'string'
       || typeof parsed.createdAt !== 'number'
+      || !Number.isFinite(parsed.createdAt)
     ) {
       return null
     }

@@ -44,7 +44,7 @@ services:
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
       POSTGRES_DB: "sub2api"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_v2:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U sub2api -d sub2api"]
       interval: 10s
@@ -65,5 +65,5 @@ services:
 
 volumes:
   sub2api_data:
-  postgres_data:
+  postgres_data_v2:
   redis_data:

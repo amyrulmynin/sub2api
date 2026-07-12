@@ -62,6 +62,7 @@ interface DialogStackEntry {
 
 const dialogStack: DialogStackEntry[] = []
 let keydownListening = false
+let focusinListening = false
 
 function getTopDialog(): DialogStackEntry | undefined {
   return dialogStack.reduce<DialogStackEntry | undefined>((top, entry) => {
@@ -95,14 +96,26 @@ function handleStackKeydown(event: KeyboardEvent) {
   if (!event.defaultPrevented && event.key === 'Tab') top.handleTab(event)
 }
 
+function handleStackFocusin(event: FocusEvent) {
+  const top = getTopDialog()
+  const target = event.target
+  if (top && target instanceof HTMLElement && !top.contains(target)) top.focusDialog()
+}
+
 function syncBodyScrollLock() {
   document.body.classList.toggle('modal-open', dialogStack.length > 0)
   if (dialogStack.length > 0 && !keydownListening) {
     document.addEventListener('keydown', handleStackKeydown, true)
     keydownListening = true
+    document.addEventListener('focusin', handleStackFocusin, true)
+    focusinListening = true
   } else if (dialogStack.length === 0 && keydownListening) {
     document.removeEventListener('keydown', handleStackKeydown, true)
     keydownListening = false
+    if (focusinListening) {
+      document.removeEventListener('focusin', handleStackFocusin, true)
+      focusinListening = false
+    }
   }
 }
 </script>
@@ -207,7 +220,7 @@ function isSequentiallyFocusable(element: HTMLElement): boolean {
 
 function getFocusableElements(): HTMLElement[] {
   if (!dialogRef.value) return []
-  return Array.from(dialogRef.value.querySelectorAll<HTMLElement>(focusableSelector))
+  const ordered = Array.from(dialogRef.value.querySelectorAll<HTMLElement>(focusableSelector))
     .filter(isSequentiallyFocusable)
     .map((element, index) => ({ element, index, tabIndex: Math.max(0, element.tabIndex) }))
     .sort((a, b) => {
@@ -217,12 +230,25 @@ function getFocusableElements(): HTMLElement[] {
       return a.index - b.index
     })
     .map(item => item.element)
+
+  const radioStops: Array<{ form: HTMLFormElement | null; name: string; stop: HTMLInputElement }> = []
+  for (const element of ordered) {
+    if (!(element instanceof HTMLInputElement) || element.type !== 'radio' || !element.name) continue
+    const group = radioStops.find(item => item.form === element.form && item.name === element.name)
+    if (!group) radioStops.push({ form: element.form, name: element.name, stop: element })
+    else if (element.checked) group.stop = element
+  }
+
+  return ordered.filter(element => {
+    if (!(element instanceof HTMLInputElement) || element.type !== 'radio' || !element.name) return true
+    return radioStops.find(item => item.form === element.form && item.name === element.name)?.stop === element
+  })
 }
 
 function focusDialog() {
   if (!dialogRef.value) return
   const focusTarget = getFocusableElements()[0] || dialogRef.value
-  focusTarget.focus()
+  if (document.activeElement !== focusTarget) focusTarget.focus()
 }
 
 function registerDialog() {
@@ -300,10 +326,13 @@ function handleTab(event: KeyboardEvent) {
   const first = focusable[0]
   const last = focusable[focusable.length - 1]
   const active = document.activeElement
-  if (event.shiftKey && (active === first || !dialogRef.value.contains(active))) {
+  if (!(active instanceof HTMLElement) || !focusable.includes(active)) {
+    event.preventDefault()
+    ;(event.shiftKey ? last : first).focus()
+  } else if (event.shiftKey && active === first) {
     event.preventDefault()
     last.focus()
-  } else if (!event.shiftKey && (active === last || !dialogRef.value.contains(active))) {
+  } else if (!event.shiftKey && active === last) {
     event.preventDefault()
     first.focus()
   }
@@ -330,8 +359,10 @@ watch(
 
 watch(() => props.zIndex, zIndex => {
   if (!stackEntry) return
+  const previousTop = getTopDialog()
   stackEntry.zIndex = zIndex
-  if (getTopDialog()?.token === dialogToken) focusDialog()
+  const nextTop = getTopDialog()
+  if (nextTop && nextTop.token !== previousTop?.token) nextTop.focusDialog()
 })
 
 onUnmounted(() => {

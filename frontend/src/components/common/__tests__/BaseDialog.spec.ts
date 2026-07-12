@@ -525,4 +525,177 @@ describe('BaseDialog', () => {
 
     wrapper.unmount()
   })
+
+  it('contains Tab from the panel and programmatic negative-tabindex descendants', async () => {
+    const wrapper = mount(BaseDialog, {
+      props: { show: true, title: 'Programmatic focus', showCloseButton: false },
+      slots: {
+        default: `
+          <button data-test="programmatic-first">First</button>
+          <div tabindex="-1" data-test="programmatic-negative">Negative</div>
+          <button data-test="programmatic-last">Last</button>
+        `,
+      },
+      attachTo: document.body,
+    })
+    await flushPromises()
+
+    const panel = document.querySelector<HTMLElement>('.modal-content')
+    const first = document.querySelector<HTMLElement>('[data-test="programmatic-first"]')
+    const negative = document.querySelector<HTMLElement>('[data-test="programmatic-negative"]')
+    const last = document.querySelector<HTMLElement>('[data-test="programmatic-last"]')
+    if (!panel || !first || !negative || !last) throw new Error('Expected programmatic focus controls')
+
+    panel.focus()
+    const panelTab = new KeyboardEvent('keydown', { key: 'Tab', cancelable: true })
+    document.dispatchEvent(panelTab)
+    expect(panelTab.defaultPrevented).toBe(true)
+    expect(document.activeElement).toBe(first)
+
+    panel.focus()
+    const panelShiftTab = new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, cancelable: true })
+    document.dispatchEvent(panelShiftTab)
+    expect(panelShiftTab.defaultPrevented).toBe(true)
+    expect(document.activeElement).toBe(last)
+
+    negative.focus()
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', cancelable: true }))
+    expect(document.activeElement).toBe(first)
+
+    negative.focus()
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, cancelable: true }))
+    expect(document.activeElement).toBe(last)
+
+    wrapper.unmount()
+  })
+
+  it('models a named radio group as one checked sequential stop', async () => {
+    const wrapper = mount(BaseDialog, {
+      props: { show: true, title: 'Radio group', showCloseButton: false },
+      slots: {
+        default: `
+          <input type="radio" name="choice" data-test="radio-one" />
+          <input type="radio" name="choice" data-test="radio-two" checked />
+          <input type="radio" name="choice" data-test="radio-three" />
+        `,
+      },
+      attachTo: document.body,
+    })
+    await flushPromises()
+
+    const one = document.querySelector<HTMLElement>('[data-test="radio-one"]')
+    const checked = document.querySelector<HTMLElement>('[data-test="radio-two"]')
+    const three = document.querySelector<HTMLElement>('[data-test="radio-three"]')
+    if (!one || !checked || !three) throw new Error('Expected radio group controls')
+
+    one.focus()
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', cancelable: true }))
+    expect(document.activeElement).toBe(checked)
+
+    three.focus()
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, cancelable: true }))
+    expect(document.activeElement).toBe(checked)
+
+    checked.focus()
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', cancelable: true }))
+    expect(document.activeElement).toBe(checked)
+
+    checked.focus()
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, cancelable: true }))
+    expect(document.activeElement).toBe(checked)
+
+    wrapper.unmount()
+  })
+
+  it('uses the first enabled visible radio when a group has no checked member', async () => {
+    const wrapper = mount(BaseDialog, {
+      props: { show: true, title: 'Unchecked radio group', showCloseButton: false },
+      slots: {
+        default: `
+          <input type="radio" name="unchecked" data-test="unchecked-one" />
+          <input type="radio" name="unchecked" data-test="unchecked-two" />
+        `,
+      },
+      attachTo: document.body,
+    })
+    await flushPromises()
+
+    const first = document.querySelector<HTMLElement>('[data-test="unchecked-one"]')
+    if (!first) throw new Error('Expected unchecked radio group control')
+    expect(document.activeElement).toBe(first)
+
+    for (const shiftKey of [false, true]) {
+      const tab = new KeyboardEvent('keydown', { key: 'Tab', shiftKey, cancelable: true })
+      document.dispatchEvent(tab)
+      expect(tab.defaultPrevented).toBe(true)
+      expect(document.activeElement).toBe(first)
+    }
+
+    wrapper.unmount()
+  })
+
+  it('redirects pointer or programmatic focus to the current visual owner', async () => {
+    const background = document.createElement('button')
+    document.body.appendChild(background)
+
+    const low = mount(BaseDialog, {
+      props: { show: true, title: 'Low focus owner', showCloseButton: false, zIndex: 40 },
+      slots: { default: '<button data-test="focus-low">Low action</button>' },
+      attachTo: document.body,
+    })
+    await flushPromises()
+
+    const high = mount(BaseDialog, {
+      props: { show: true, title: 'High focus owner', showCloseButton: false, zIndex: 80 },
+      slots: { default: '<button data-test="focus-high">High action</button>' },
+      attachTo: document.body,
+    })
+    await flushPromises()
+
+    const highButton = document.querySelector<HTMLElement>('[data-test="focus-high"]')
+    if (!highButton) throw new Error('Expected high visual owner control')
+
+    background.focus()
+    expect(document.activeElement).toBe(highButton)
+
+    const lowButton = document.querySelector<HTMLElement>('[data-test="focus-low"]')
+    if (!lowButton) throw new Error('Expected low visual owner control')
+    lowButton.focus()
+    expect(document.activeElement).toBe(highButton)
+
+    high.unmount()
+    low.unmount()
+  })
+
+  it('moves focus when reactive z-index changes visual ownership', async () => {
+    const first = mount(BaseDialog, {
+      props: { show: true, title: 'Reactive first', showCloseButton: false, zIndex: 80 },
+      slots: { default: '<button data-test="reactive-first">First action</button>' },
+      attachTo: document.body,
+    })
+    await flushPromises()
+
+    const second = mount(BaseDialog, {
+      props: { show: true, title: 'Reactive second', showCloseButton: false, zIndex: 40 },
+      slots: { default: '<button data-test="reactive-second">Second action</button>' },
+      attachTo: document.body,
+    })
+    await flushPromises()
+
+    const firstButton = document.querySelector<HTMLElement>('[data-test="reactive-first"]')
+    const secondButton = document.querySelector<HTMLElement>('[data-test="reactive-second"]')
+    if (!firstButton || !secondButton) throw new Error('Expected reactive z-index controls')
+    expect(document.activeElement).toBe(firstButton)
+
+    await first.setProps({ zIndex: 20 })
+    await flushPromises()
+    expect(document.activeElement).toBe(secondButton)
+
+    await first.setProps({ zIndex: 100 })
+    await flushPromises()
+    expect(document.activeElement).toBe(firstButton)
+
+    second.unmount()
+    first.unmount()
+  })
 })

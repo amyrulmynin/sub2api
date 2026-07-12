@@ -52,26 +52,31 @@ export function formatNumber(num: number | null | undefined): string {
   return formatter.format(num)
 }
 
-/**
- * 格式化货币金额
- * @param amount 金额
- * @param currency 货币代码，默认 USD
- * @returns 格式化后的字符串，如 "$1.25"
- */
-export function formatCurrency(amount: number | null | undefined, currency: string = 'USD'): string {
-  if (amount === null || amount === undefined) return '$0.00'
+export const PRODUCT_CURRENCY = 'MYR'
+export const PRODUCT_CURRENCY_SYMBOL = 'RM'
 
-  const locale = getLocale()
+export function formatCurrency(
+  amount: number | null | undefined,
+  currency: string = PRODUCT_CURRENCY
+): string {
+  const value = typeof amount === 'number' && Number.isFinite(amount) ? amount : 0
+  const fractionDigits = Math.abs(value) > 0 && Math.abs(value) < 0.01 ? 6 : 2
 
-  // For very small amounts, show more decimals
-  const fractionDigits = amount > 0 && amount < 0.01 ? 6 : 2
+  if (currency.toUpperCase() === PRODUCT_CURRENCY) {
+    const sign = value < 0 ? '-' : ''
+    const formatted = new Intl.NumberFormat(getLocale(), {
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits
+    }).format(Math.abs(value))
+    return `${sign}${PRODUCT_CURRENCY_SYMBOL}${formatted}`
+  }
 
-  return new Intl.NumberFormat(locale, {
+  return new Intl.NumberFormat(getLocale(), {
     style: 'currency',
-    currency: currency,
+    currency,
     minimumFractionDigits: fractionDigits,
     maximumFractionDigits: fractionDigits
-  }).format(amount)
+  }).format(value)
 }
 
 /**

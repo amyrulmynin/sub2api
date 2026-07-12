@@ -117,4 +117,21 @@ describe('TokenUsageTrend', () => {
     // Hit rate = 500 / (200 + 500 + 300) * 100 = 50%
     expect(hitRateDataset.data[0]).toBe(50)
   })
+
+  it('compacts negative large costs with their sign', () => {
+    const wrapper = mount(TokenUsageTrend, {
+      props: {
+        trendData: [{
+          date: '2026-05-08', requests: 1, input_tokens: 1, output_tokens: 0,
+          cache_creation_tokens: 0, cache_read_tokens: 0, cost: -1500, actual_cost: -2000,
+        }],
+      },
+      global: { stubs: { LoadingSpinner: true } },
+    })
+    const options = (wrapper.vm as any).$?.setupState.lineOptions
+
+    expect(options.plugins.tooltip.callbacks.footer([{ dataIndex: 0 }])).toBe(
+      'Actual: RM-2.00K | Standard: RM-1.50K'
+    )
+  })
 })

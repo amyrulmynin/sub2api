@@ -37,7 +37,7 @@
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="input-label">{{ t('payment.admin.price') }} <span class="text-red-500">*</span></label>
-          <input v-model.number="planForm.price" type="number" step="0.01" min="0.01" class="input" required />
+          <div class="relative"><span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">{{ PRODUCT_CURRENCY_SYMBOL }}</span><input v-model.number="planForm.price" type="number" step="0.01" min="0.01" class="input pl-10" required /></div>
           <p v-if="subscriptionCnyPreview" class="mt-1 text-xs font-medium text-primary-600 dark:text-primary-400">
             {{ t('payment.admin.subscriptionCnyPayPreview', { amount: subscriptionCnyPreview.amount }) }}
             <span v-if="subscriptionCnyPreview.feeRate > 0">
@@ -45,7 +45,7 @@
             </span>
           </p>
         </div>
-        <div><label class="input-label">{{ t('payment.admin.originalPrice') }}</label><input v-model.number="planForm.original_price" type="number" step="0.01" min="0" class="input" /></div>
+        <div><label class="input-label">{{ t('payment.admin.originalPrice') }}</label><div class="relative"><span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">{{ PRODUCT_CURRENCY_SYMBOL }}</span><input v-model.number="planForm.original_price" type="number" step="0.01" min="0" class="input pl-10" /></div></div>
       </div>
       <div class="grid grid-cols-2 gap-4">
         <div><label class="input-label">{{ t('payment.admin.validityDays') }} <span class="text-red-500">*</span></label><input v-model.number="planForm.validity_days" type="number" min="1" class="input" required /></div>
@@ -100,7 +100,7 @@ import Select from '@/components/common/Select.vue'
 import Icon from '@/components/icons/Icon.vue'
 import GroupBadge from '@/components/common/GroupBadge.vue'
 import { platformTextClass } from '@/utils/platformColors'
-import { formatCurrency } from '@/utils/format'
+import { formatCurrency, PRODUCT_CURRENCY_SYMBOL } from '@/utils/format'
 
 const props = defineProps<{
   show: boolean

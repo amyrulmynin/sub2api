@@ -862,7 +862,7 @@
           </div>
           <div class="grid grid-cols-3 gap-3">
             <div>
-              <label class="input-label">1K ($)</label>
+              <label class="input-label">1K (RM)</label>
               <input
                 v-model.number="createForm.image_price_1k"
                 type="number"
@@ -873,7 +873,7 @@
               />
             </div>
             <div>
-              <label class="input-label">2K ($)</label>
+              <label class="input-label">2K (RM)</label>
               <input
                 v-model.number="createForm.image_price_2k"
                 type="number"
@@ -884,7 +884,7 @@
               />
             </div>
             <div>
-              <label class="input-label">4K ($)</label>
+              <label class="input-label">4K (RM)</label>
               <input
                 v-model.number="createForm.image_price_4k"
                 type="number"
@@ -1006,7 +1006,7 @@
           </div>
           <div class="grid grid-cols-3 gap-3">
             <div>
-              <label class="input-label">480p ($/s)</label>
+              <label class="input-label">480p (RM/s)</label>
               <input
                 v-model.number="createForm.video_price_480p"
                 type="number"
@@ -1017,7 +1017,7 @@
               />
             </div>
             <div>
-              <label class="input-label">720p ($/s)</label>
+              <label class="input-label">720p (RM/s)</label>
               <input
                 v-model.number="createForm.video_price_720p"
                 type="number"
@@ -1028,7 +1028,7 @@
               />
             </div>
             <div>
-              <label class="input-label">1080p ($/s)</label>
+              <label class="input-label">1080p (RM/s)</label>
               <input
                 v-model.number="createForm.video_price_1080p"
                 type="number"
@@ -2341,7 +2341,7 @@
           </div>
           <div class="grid grid-cols-3 gap-3">
             <div>
-              <label class="input-label">1K ($)</label>
+              <label class="input-label">1K (RM)</label>
               <input
                 v-model.number="editForm.image_price_1k"
                 type="number"
@@ -2352,7 +2352,7 @@
               />
             </div>
             <div>
-              <label class="input-label">2K ($)</label>
+              <label class="input-label">2K (RM)</label>
               <input
                 v-model.number="editForm.image_price_2k"
                 type="number"
@@ -2363,7 +2363,7 @@
               />
             </div>
             <div>
-              <label class="input-label">4K ($)</label>
+              <label class="input-label">4K (RM)</label>
               <input
                 v-model.number="editForm.image_price_4k"
                 type="number"
@@ -2485,7 +2485,7 @@
           </div>
           <div class="grid grid-cols-3 gap-3">
             <div>
-              <label class="input-label">480p ($/s)</label>
+              <label class="input-label">480p (RM/s)</label>
               <input
                 v-model.number="editForm.video_price_480p"
                 type="number"
@@ -2496,7 +2496,7 @@
               />
             </div>
             <div>
-              <label class="input-label">720p ($/s)</label>
+              <label class="input-label">720p (RM/s)</label>
               <input
                 v-model.number="editForm.video_price_720p"
                 type="number"
@@ -2507,7 +2507,7 @@
               />
             </div>
             <div>
-              <label class="input-label">1080p ($/s)</label>
+              <label class="input-label">1080p (RM/s)</label>
               <input
                 v-model.number="editForm.video_price_1080p"
                 type="number"

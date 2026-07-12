@@ -673,18 +673,18 @@ const handleClose = () => {
 
 // Format helpers
 const formatCost = (value: number): string => {
-  if (value >= 1000) {
+  if (Math.abs(value) >= 1000) {
     return (value / 1000).toFixed(2) + 'K'
-  } else if (value >= 1) {
+  } else if (Math.abs(value) >= 1) {
     return value.toFixed(2)
-  } else if (value >= 0.01) {
+  } else if (Math.abs(value) >= 0.01) {
     return value.toFixed(3)
   }
   return value.toFixed(4)
 }
 
 const formatProductCost = (value: number): string =>
-  value >= 1000 ? `RM${formatCost(value)}` : formatCurrency(value)
+  Math.abs(value) >= 1000 ? `RM${formatCost(value)}` : formatCurrency(value)
 
 const formatNumber = (value: number): string => {
   if (value >= 1_000_000) {

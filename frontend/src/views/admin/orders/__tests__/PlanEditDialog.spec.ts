@@ -53,6 +53,12 @@ function mountDialog(paymentConfig: Record<string, unknown> | null) {
 }
 
 describe('PlanEditDialog subscription CNY payment preview', () => {
+  it('renders MYR units for price inputs', () => {
+    const wrapper = mountDialog(null)
+
+    expect(wrapper.text().match(/RM/g)).toHaveLength(2)
+  })
+
   it('shows CNY channel charge using the configured subscription rate and fee', async () => {
     const wrapper = mountDialog({
       subscription_usd_to_cny_rate: 7.15,

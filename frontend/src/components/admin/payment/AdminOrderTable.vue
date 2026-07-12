@@ -57,7 +57,7 @@
           <span v-if="row.fee_rate > 0" class="ml-1 text-xs text-gray-400" :title="t('payment.orders.fee') + ': ' + row.fee_rate + '%'">
             ({{ row.fee_rate }}%)
           </span>
-          <div v-if="row.amount !== row.pay_amount" class="text-xs text-gray-500">
+          <div v-if="row.amount !== row.pay_amount || row.currency?.toUpperCase() !== PRODUCT_CURRENCY" class="text-xs text-gray-500">
             {{ t('payment.orders.creditedAmount') }}: {{ formatCurrency(row.amount) }}
           </div>
         </div>
@@ -144,7 +144,7 @@ import Select from '@/components/common/Select.vue'
 import Icon from '@/components/icons/Icon.vue'
 import { statusBadgeClass, canRefund, formatOrderDateTime } from '@/components/payment/orderUtils'
 import { formatPaymentAmount } from '@/components/payment/currency'
-import { formatCurrency } from '@/utils/format'
+import { formatCurrency, PRODUCT_CURRENCY } from '@/utils/format'
 
 const { t } = useI18n()
 

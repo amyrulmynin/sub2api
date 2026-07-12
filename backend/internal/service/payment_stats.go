@@ -57,9 +57,9 @@ func computeBasicStats(st *DashboardStats, orders []*dbent.PaymentOrder, todaySt
 	var totalAmount, todayAmount float64
 	var todayCount int
 	for _, o := range orders {
-		totalAmount += o.PayAmount
+		totalAmount += o.Amount
 		if o.PaidAt != nil && !o.PaidAt.Before(todayStart) {
-			todayAmount += o.PayAmount
+			todayAmount += o.Amount
 			todayCount++
 		}
 	}
@@ -84,7 +84,7 @@ func buildDailySeries(orders []*dbent.PaymentOrder, since time.Time, days int) [
 			ds = &DailyStats{Date: date}
 			dailyMap[date] = ds
 		}
-		ds.Amount += o.PayAmount
+		ds.Amount += o.Amount
 		ds.Count++
 	}
 	series := make([]DailyStats, 0, days)
@@ -108,7 +108,7 @@ func buildMethodDistribution(orders []*dbent.PaymentOrder) []PaymentMethodStat {
 			ms = &PaymentMethodStat{Type: o.PaymentType}
 			methodMap[o.PaymentType] = ms
 		}
-		ms.Amount += o.PayAmount
+		ms.Amount += o.Amount
 		ms.Count++
 	}
 	methods := make([]PaymentMethodStat, 0, len(methodMap))
@@ -127,7 +127,7 @@ func buildTopUsers(orders []*dbent.PaymentOrder) []TopUserStat {
 			us = &TopUserStat{UserID: o.UserID, Email: o.UserEmail}
 			userMap[o.UserID] = us
 		}
-		us.Amount += o.PayAmount
+		us.Amount += o.Amount
 	}
 	userList := make([]*TopUserStat, 0, len(userMap))
 	for _, us := range userMap {

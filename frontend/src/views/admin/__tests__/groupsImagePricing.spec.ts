@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import groupsViewSource from "../GroupsView.vue?raw";
 
 import {
   getDefaultImagePreviewPrice,
@@ -48,5 +49,15 @@ describe("groups image pricing platform support", () => {
     expect(getImagePricePlaceholder("openai", "image_price_1k")).toBe("0.134");
     expect(getDefaultImagePreviewPrice("openai", "image_price_2k")).toBe(0.201);
     expect(getDefaultVideoPreviewPrice("openai", "video_price_480p")).toBeNull();
+  });
+
+  it("labels create and edit media pricing inputs in MYR", () => {
+    expect(groupsViewSource.match(/1K \(RM\)/g)).toHaveLength(2);
+    expect(groupsViewSource.match(/2K \(RM\)/g)).toHaveLength(2);
+    expect(groupsViewSource.match(/4K \(RM\)/g)).toHaveLength(2);
+    expect(groupsViewSource.match(/480p \(RM\/s\)/g)).toHaveLength(2);
+    expect(groupsViewSource.match(/720p \(RM\/s\)/g)).toHaveLength(2);
+    expect(groupsViewSource.match(/1080p \(RM\/s\)/g)).toHaveLength(2);
+    expect(groupsViewSource).not.toMatch(/\(\$\)|\(\$\/s\)/);
   });
 });

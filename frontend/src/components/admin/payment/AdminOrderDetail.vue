@@ -29,7 +29,7 @@
           <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('payment.orders.payAmount') }}</p>
           <p class="text-sm font-medium text-gray-900 dark:text-white">{{ formatPaymentAmount(order.pay_amount, order.currency) }}</p>
         </div>
-        <div v-if="order.amount !== order.pay_amount">
+        <div v-if="order.amount !== order.pay_amount || order.currency?.toUpperCase() !== PRODUCT_CURRENCY">
           <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('payment.orders.creditedAmount') }}</p>
           <p class="text-sm font-medium text-gray-900 dark:text-white">{{ formatCurrency(order.amount) }}</p>
         </div>
@@ -120,7 +120,7 @@ import BaseDialog from '@/components/common/BaseDialog.vue'
 import type { PaymentOrder } from '@/types/payment'
 import { statusBadgeClass, canRefund as canRefundStatus, formatOrderDateTime } from '@/components/payment/orderUtils'
 import { formatPaymentAmount } from '@/components/payment/currency'
-import { formatCurrency } from '@/utils/format'
+import { formatCurrency, PRODUCT_CURRENCY } from '@/utils/format'
 
 const { t } = useI18n()
 

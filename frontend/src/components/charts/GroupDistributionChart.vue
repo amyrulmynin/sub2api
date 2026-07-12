@@ -256,16 +256,16 @@ const toFiniteNumber = (value: unknown): number => {
 
 const formatCost = (value: number | null | undefined): string => {
   const safeValue = toFiniteNumber(value)
-  if (safeValue >= 1000) {
+  if (Math.abs(safeValue) >= 1000) {
     return (safeValue / 1000).toFixed(2) + 'K'
-  } else if (safeValue >= 1) {
+  } else if (Math.abs(safeValue) >= 1) {
     return safeValue.toFixed(2)
-  } else if (safeValue >= 0.01) {
+  } else if (Math.abs(safeValue) >= 0.01) {
     return safeValue.toFixed(3)
   }
   return safeValue.toFixed(4)
 }
 
 const formatProductCost = (value: number | null | undefined): string =>
-  (value ?? 0) >= 1000 ? `RM${formatCost(value)}` : formatCurrency(value)
+  Math.abs(value ?? 0) >= 1000 ? `RM${formatCost(value)}` : formatCurrency(value)
 </script>

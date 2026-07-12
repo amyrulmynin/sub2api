@@ -150,4 +150,21 @@ describe('admin order currency display', () => {
     expect(text).toContain('¥108.00')
     expect(text).toContain('RM100.00')
   })
+
+  it('shows equal-numeric USD settlement and MYR credit in detail and admin table', () => {
+    const order = orderFactory({ currency: 'USD', amount: 100, pay_amount: 100, fee_rate: 0, refund_amount: 0 })
+    const detail = mount(AdminOrderDetail, {
+      props: { show: true, order },
+      global: { stubs: { BaseDialog: BaseDialogStub } },
+    })
+    const table = mount(AdminOrderTable, {
+      props: { orders: [order], loading: false, page: 1, pageSize: 20, total: 1 },
+      global: { stubs: { DataTable: DataTableStub, Icon: true, Pagination: true, Select: true } },
+    })
+
+    expect(detail.text()).toContain('$100.00')
+    expect(detail.text()).toContain('payment.orders.creditedAmountRM100.00')
+    expect(table.text()).toContain('$100.00')
+    expect(table.text()).toContain('payment.orders.creditedAmount: RM100.00')
+  })
 })

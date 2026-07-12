@@ -118,11 +118,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick, inject } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Icon from '@/components/icons/Icon.vue'
+import { dialogPortalKey } from './dialogPortal'
 
 const { t } = useI18n()
+const dialogPortal = inject(dialogPortalKey, null)
 
 // Instance ID for unique click-outside detection
 const instanceId = `select-${Math.random().toString(36).substring(2, 9)}`
@@ -178,6 +180,11 @@ const dropdownRef = ref<HTMLElement | null>(null)
 const optionsListRef = ref<HTMLElement | null>(null)
 const dropdownPosition = ref<'bottom' | 'top'>('bottom')
 const triggerRect = ref<DOMRect | null>(null)
+
+watch(dropdownRef, (portal, previousPortal) => {
+  if (previousPortal) dialogPortal?.unregisterPortal(previousPortal)
+  if (portal) dialogPortal?.registerPortal(portal)
+})
 
 // i18n placeholders
 const placeholderText = computed(() => props.placeholder ?? t('common.selectOption'))
@@ -447,6 +454,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  if (dropdownRef.value) dialogPortal?.unregisterPortal(dropdownRef.value)
   document.removeEventListener('click', handleClickOutside)
   window.removeEventListener('scroll', updateTriggerRect, { capture: true })
   window.removeEventListener('resize', calculateDropdownPosition)

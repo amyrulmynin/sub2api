@@ -121,8 +121,9 @@ function syncBodyScrollLock() {
 </script>
 
 <script setup lang="ts">
-import { computed, watch, onUnmounted, ref, nextTick } from 'vue'
+import { computed, watch, onUnmounted, ref, nextTick, provide } from 'vue'
 import Icon from '@/components/icons/Icon.vue'
+import { dialogPortalKey } from './dialogPortal'
 
 // 生成唯一ID以避免多个对话框时ID冲突
 const dialogId = `modal-title-${++dialogIdCounter}`
@@ -131,8 +132,14 @@ const dialogToken = Symbol(dialogId)
 // 焦点管理
 const dialogRef = ref<HTMLElement | null>(null)
 const overlayRef = ref<HTMLElement | null>(null)
+const ownedPortals = new Set<HTMLElement>()
 let previousActiveElement: HTMLElement | null = null
 let stackEntry: DialogStackEntry | null = null
+
+provide(dialogPortalKey, {
+  registerPortal: portal => ownedPortals.add(portal),
+  unregisterPortal: portal => ownedPortals.delete(portal),
+})
 
 type DialogWidth = 'narrow' | 'normal' | 'wide' | 'extra-wide' | 'full'
 
@@ -220,7 +227,8 @@ function isSequentiallyFocusable(element: HTMLElement): boolean {
 
 function getFocusableElements(): HTMLElement[] {
   if (!dialogRef.value) return []
-  const ordered = Array.from(dialogRef.value.querySelectorAll<HTMLElement>(focusableSelector))
+  const roots = [dialogRef.value, ...Array.from(ownedPortals).filter(portal => portal.isConnected)]
+  const ordered = roots.flatMap(root => Array.from(root.querySelectorAll<HTMLElement>(focusableSelector)))
     .filter(isSequentiallyFocusable)
     .map((element, index) => ({ element, index, tabIndex: Math.max(0, element.tabIndex) }))
     .sort((a, b) => {
@@ -262,7 +270,8 @@ function registerDialog() {
     closeOnEscape: () => props.closeOnEscape,
     emitClose: () => emit('close'),
     focusDialog,
-    contains: element => dialogRef.value?.contains(element) === true,
+    contains: element => dialogRef.value?.contains(element) === true
+      || Array.from(ownedPortals).some(portal => portal.isConnected && portal.contains(element)),
     getOverlay: () => overlayRef.value,
     handleTab,
   }
@@ -366,6 +375,7 @@ watch(() => props.zIndex, zIndex => {
 })
 
 onUnmounted(() => {
+  ownedPortals.clear()
   restorePreviousFocus(unregisterDialog())
 })
 </script>

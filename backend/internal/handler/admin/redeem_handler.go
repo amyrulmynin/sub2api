@@ -412,7 +412,7 @@ func (h *RedeemHandler) Export(c *gin.Context) {
 	writer := csv.NewWriter(&buf)
 
 	// Write header
-	if err := writer.Write([]string{"id", "code", "type", "value", "status", "used_by", "used_by_email", "used_at", "expires_at", "created_at"}); err != nil {
+	if err := writer.Write([]string{"id", "code", "type", "value", "status", "used_by", "used_by_email", "used_at", "expires_at", "created_at", "value_unit"}); err != nil {
 		response.InternalError(c, "Failed to export redeem codes: "+err.Error())
 		return
 	}
@@ -435,6 +435,10 @@ func (h *RedeemHandler) Export(c *gin.Context) {
 		if code.ExpiresAt != nil {
 			expiresAt = code.ExpiresAt.Format("2006-01-02 15:04:05")
 		}
+		valueUnit := ""
+		if code.Type == "balance" {
+			valueUnit = "MYR"
+		}
 		if err := writer.Write([]string{
 			fmt.Sprintf("%d", code.ID),
 			code.Code,
@@ -446,6 +450,7 @@ func (h *RedeemHandler) Export(c *gin.Context) {
 			usedAt,
 			expiresAt,
 			code.CreatedAt.Format("2006-01-02 15:04:05"),
+			valueUnit,
 		}); err != nil {
 			response.InternalError(c, "Failed to export redeem codes: "+err.Error())
 			return

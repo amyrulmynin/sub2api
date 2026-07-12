@@ -66,6 +66,35 @@ func TestNotificationEmailTemplateOverrideAndRestore(t *testing.T) {
 	require.ErrorIs(t, err, ErrSettingNotFound)
 }
 
+func TestNotificationEmailOfficialProductAmountsUseFormattedVariables(t *testing.T) {
+	ctx := context.Background()
+	svc := NewNotificationEmailService(newNotificationEmailMemorySettingRepo(), nil)
+
+	preview, err := svc.PreviewTemplate(ctx, NotificationEmailPreviewInput{
+		Event:  NotificationEmailEventBalanceRechargeSuccess,
+		Locale: "en",
+		Variables: map[string]string{
+			"recharge_amount": "RM10.00",
+			"current_balance": "RM20.00",
+			"order_id":        "123",
+		},
+	})
+	require.NoError(t, err)
+	require.Contains(t, preview.HTML, "RM10.00")
+	require.Contains(t, preview.HTML, "RM20.00")
+	require.NotContains(t, preview.HTML, "$10.00")
+	require.NotContains(t, preview.HTML, "RMRM")
+}
+
+func TestNotificationEmailSamplesFormatProductAmounts(t *testing.T) {
+	variables := notificationEmailSampleVariables("en")
+	require.Equal(t, "RM12.34", variables["current_balance"])
+	require.Equal(t, "RM50.00", variables["recharge_amount"])
+	require.Equal(t, "RM80.00", variables["quota_used"])
+	require.Equal(t, "RM100.00", variables["quota_limit"])
+	require.Equal(t, "RM20.00", variables["quota_remaining"])
+}
+
 func TestNotificationEmailTemplateRejectsUnsupportedPlaceholder(t *testing.T) {
 	ctx := context.Background()
 	svc := NewNotificationEmailService(newNotificationEmailMemorySettingRepo(), nil)

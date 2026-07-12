@@ -3,7 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 
 import UsageView from '../UsageView.vue'
 
-const { list, getStats, getSnapshotV2, getById, getModelStats, listErrorLogs } = vi.hoisted(() => {
+const { list, getStats, getSnapshotV2, getById, getModelStats, listErrorLogs, exportList, aoaToSheet, sheetAddAoa, saveAs } = vi.hoisted(() => {
   vi.stubGlobal('localStorage', {
     getItem: vi.fn(() => null),
     setItem: vi.fn(),
@@ -17,6 +17,10 @@ const { list, getStats, getSnapshotV2, getById, getModelStats, listErrorLogs } =
     getById: vi.fn(),
     getModelStats: vi.fn(),
     listErrorLogs: vi.fn(),
+    exportList: vi.fn(),
+    aoaToSheet: vi.fn(() => ({})),
+    sheetAddAoa: vi.fn(),
+    saveAs: vi.fn(),
   }
 })
 
@@ -25,6 +29,13 @@ const messages: Record<string, string> = {
   'admin.dashboard.day': 'Day',
   'admin.dashboard.hour': 'Hour',
   'admin.usage.failedToLoadUser': 'Failed to load user',
+  'admin.usage.inputCost': 'Input Cost',
+  'admin.usage.outputCost': 'Output Cost',
+  'admin.usage.cacheReadCost': 'Cache Read Cost',
+  'admin.usage.cacheCreationCost': 'Cache Creation Cost',
+  'usage.original': 'Original Cost',
+  'usage.userBilled': 'Billed Cost',
+  'usage.accountBilled': 'Account Billed Cost',
 }
 
 const formatLocalDate = (date: Date): string => {
@@ -52,8 +63,20 @@ vi.mock('@/api/admin', () => ({
 
 vi.mock('@/api/admin/usage', () => ({
   adminUsageAPI: {
-    list: vi.fn(),
+    list: exportList,
   },
+}))
+
+vi.mock('file-saver', () => ({ saveAs }))
+
+vi.mock('xlsx', () => ({
+  utils: {
+    aoa_to_sheet: aoaToSheet,
+    sheet_add_aoa: sheetAddAoa,
+    book_new: vi.fn(() => ({})),
+    book_append_sheet: vi.fn(),
+  },
+  write: vi.fn(() => new ArrayBuffer(0)),
 }))
 
 vi.mock('@/api/admin/ops', () => ({
@@ -128,6 +151,10 @@ describe('admin UsageView distribution metric toggles', () => {
     getSnapshotV2.mockReset()
     getById.mockReset()
     getModelStats.mockReset()
+    exportList.mockReset()
+    aoaToSheet.mockClear()
+    sheetAddAoa.mockClear()
+    saveAs.mockClear()
 
     list.mockResolvedValue({
       items: [],
@@ -150,6 +177,17 @@ describe('admin UsageView distribution metric toggles', () => {
       groups: [],
     })
     getModelStats.mockResolvedValue({ models: [] })
+    exportList.mockResolvedValue({
+      items: [{
+        created_at: '2026-03-08T00:00:00Z', model: 'gpt-5.4', request_type: 'sync',
+        input_tokens: 1, output_tokens: 2, cache_read_tokens: 3, cache_creation_tokens: 4,
+        input_cost: 0.1, output_cost: 0.2, cache_read_cost: 0.3, cache_creation_cost: 0.4,
+        rate_multiplier: 1, account_rate_multiplier: 1.5, total_cost: 1, actual_cost: 1.2,
+        account_stats_cost: 0.8, duration_ms: 10,
+      }],
+      total: 1,
+      pages: 1,
+    })
   })
 
   afterEach(() => {
@@ -241,6 +279,36 @@ describe('admin UsageView distribution metric toggles', () => {
     expect(modelChart.find('.metric').text()).toBe('actual_cost')
     expect(groupChart.find('.metric').text()).toBe('actual_cost')
     expect(getSnapshotV2).toHaveBeenCalledTimes(1)
+  })
+
+  it('exports monetary columns with MYR headers', async () => {
+    const wrapper = mount(UsageView, {
+      global: { stubs: {
+        AppLayout: AppLayoutStub, UsageStatsCards: true, UsageFilters: UsageFiltersStub,
+        UsageTable: true, UsageExportProgress: true, UsageCleanupDialog: true,
+        UserBalanceHistoryModal: true, Pagination: true, Select: true,
+        DateRangePicker: true, Icon: true, TokenUsageTrend: true,
+        ModelDistributionChart: true, GroupDistributionChart: true, EndpointDistributionChart: true,
+        UserTokenRanking: true,
+      } },
+    })
+    vi.advanceTimersByTime(120)
+    await flushPromises()
+
+    await (wrapper.vm as any).exportToExcel()
+
+    const headers = aoaToSheet.mock.calls[0][0][0] as string[]
+    expect(headers).toContain('Input Cost (MYR)')
+    expect(headers).toContain('Output Cost (MYR)')
+    expect(headers).toContain('Cache Read Cost (MYR)')
+    expect(headers).toContain('Cache Creation Cost (MYR)')
+    expect(headers).toContain('Original Cost (MYR)')
+    expect(headers).toContain('Billed Cost (MYR)')
+    expect(headers).toContain('Account Billed Cost (MYR)')
+    const row = sheetAddAoa.mock.calls[0][1][0] as unknown[]
+    for (const index of [15, 16, 17, 18, 21, 22, 23]) {
+      expect(typeof row[index]).toBe('number')
+    }
   })
 })
 

@@ -342,7 +342,7 @@ func (s *PaymentService) sendBalanceRechargeSuccessNotification(ctx context.Cont
 	currentBalance := ""
 	if s.userRepo != nil {
 		if user, err := s.userRepo.GetByID(ctx, o.UserID); err == nil && user != nil {
-			currentBalance = fmt.Sprintf("%.2f", user.Balance)
+			currentBalance = formatProductAmount(user.Balance)
 		}
 	}
 	return s.notificationEmailService.Send(ctx, NotificationEmailSendInput{
@@ -353,7 +353,7 @@ func (s *PaymentService) sendBalanceRechargeSuccessNotification(ctx context.Cont
 		SourceType:     "payment_order",
 		SourceID:       strconv.FormatInt(o.ID, 10),
 		Variables: map[string]string{
-			"recharge_amount": fmt.Sprintf("%.2f", o.Amount),
+			"recharge_amount": formatProductAmount(o.Amount),
 			"current_balance": currentBalance,
 			"order_id":        strconv.FormatInt(o.ID, 10),
 		},

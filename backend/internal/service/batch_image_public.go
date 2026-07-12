@@ -277,7 +277,7 @@ func (s *BatchImagePublicService) Submit(ctx context.Context, owner BatchImageOw
 		BillableUnitPrice:       pricingSnapshot.BillableUnitPrice,
 		HoldUnitPrice:           pricingSnapshot.HoldUnitPrice,
 		PricingSnapshotVersion:  1,
-		Currency:                "USD",
+		Currency:                "MYR",
 		HoldID:                  &holdID,
 		IdempotencyKey:          batchImageOptionalStringPtr(idempotencyKey),
 		RequestHash:             batchImageStringPtr(requestHash),

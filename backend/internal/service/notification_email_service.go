@@ -855,19 +855,19 @@ func notificationEmailSampleVariables(locale string) map[string]string {
 			"subscription_days":   "30",
 			"expiry_time":         "2026-06-18 12:00",
 			"days_remaining":      "3",
-			"current_balance":     "12.34",
-			"threshold":           "20.00",
+			"current_balance":     formatProductAmount(12.34),
+			"threshold":           formatProductAmount(20),
 			"recharge_url":        "https://example.com/recharge",
-			"recharge_amount":     "50.00",
+			"recharge_amount":     formatProductAmount(50),
 			"order_id":            "1024",
 			"unsubscribe_url":     "https://example.com/unsubscribe",
 			"account_id":          "1001",
 			"account_name":        "openai-main",
 			"platform":            "openai",
 			"quota_dimension":     "每日额度",
-			"quota_used":          "80.00",
-			"quota_limit":         "100.00",
-			"quota_remaining":     "20.00",
+			"quota_used":          formatProductAmount(80),
+			"quota_limit":         formatProductAmount(100),
+			"quota_remaining":     formatProductAmount(20),
 			"quota_threshold":     "20%",
 			"triggered_at":        "2026-05-20 12:00:00",
 			"group_name":          "默认分组",
@@ -901,19 +901,19 @@ func notificationEmailSampleVariables(locale string) map[string]string {
 		"subscription_days":   "30",
 		"expiry_time":         "2026-06-18 12:00",
 		"days_remaining":      "3",
-		"current_balance":     "12.34",
-		"threshold":           "20.00",
+		"current_balance":     formatProductAmount(12.34),
+		"threshold":           formatProductAmount(20),
 		"recharge_url":        "https://example.com/recharge",
-		"recharge_amount":     "50.00",
+		"recharge_amount":     formatProductAmount(50),
 		"order_id":            "1024",
 		"unsubscribe_url":     "https://example.com/unsubscribe",
 		"account_id":          "1001",
 		"account_name":        "openai-main",
 		"platform":            "openai",
 		"quota_dimension":     "Daily quota",
-		"quota_used":          "80.00",
-		"quota_limit":         "100.00",
-		"quota_remaining":     "20.00",
+		"quota_used":          formatProductAmount(80),
+		"quota_limit":         formatProductAmount(100),
+		"quota_remaining":     formatProductAmount(20),
 		"quota_threshold":     "20%",
 		"triggered_at":        "2026-05-20 12:00:00",
 		"group_name":          "Default group",
@@ -1171,7 +1171,7 @@ var notificationEmailOfficialTemplates = map[string]map[string]notificationEmail
 			Subject: "[{{site_name}}] Low balance alert",
 			HTML: notificationEmailCard("#d97706", "Low balance alert", `
 <p>Hello {{recipient_name}},</p>
-<p>Your current balance is <strong>${{current_balance}}</strong>, below the configured alert threshold of <strong>${{threshold}}</strong>.</p>
+<p>Your current balance is <strong>{{current_balance}}</strong>, below the configured alert threshold of <strong>{{threshold}}</strong>.</p>
 <p>Please recharge in time to avoid service interruption.</p>
 <p><a class="button" href="{{recharge_url}}">Recharge now</a></p>
 <p class="muted"><a href="{{unsubscribe_url}}">Unsubscribe from optional balance alerts</a></p>`),
@@ -1180,7 +1180,7 @@ var notificationEmailOfficialTemplates = map[string]map[string]notificationEmail
 			Subject: "[{{site_name}}] 余额不足提醒",
 			HTML: notificationEmailCard("#d97706", "余额不足提醒", `
 <p>{{recipient_name}}，您好：</p>
-<p>您当前余额为 <strong>${{current_balance}}</strong>，已低于提醒阈值 <strong>${{threshold}}</strong>。</p>
+<p>您当前余额为 <strong>{{current_balance}}</strong>，已低于提醒阈值 <strong>{{threshold}}</strong>。</p>
 <p>请及时充值以免服务中断。</p>
 <p><a class="button" href="{{recharge_url}}">立即充值</a></p>
 <p class="muted"><a href="{{unsubscribe_url}}">退订此类余额提醒</a></p>`),
@@ -1191,16 +1191,16 @@ var notificationEmailOfficialTemplates = map[string]map[string]notificationEmail
 			Subject: "[{{site_name}}] Balance recharge successful",
 			HTML: notificationEmailCard("#16a34a", "Recharge successful", `
 <p>Hello {{recipient_name}},</p>
-<p>Your balance recharge of <strong>${{recharge_amount}}</strong> has been completed.</p>
-<p>Current balance: <strong>${{current_balance}}</strong></p>
+<p>Your balance recharge of <strong>{{recharge_amount}}</strong> has been completed.</p>
+<p>Current balance: <strong>{{current_balance}}</strong></p>
 <p>Order ID: {{order_id}}</p>`),
 		},
 		notificationEmailLocaleChinese: {
 			Subject: "[{{site_name}}] 余额充值成功",
 			HTML: notificationEmailCard("#16a34a", "余额充值成功", `
 <p>{{recipient_name}}，您好：</p>
-<p>您的余额充值 <strong>${{recharge_amount}}</strong> 已完成。</p>
-<p>当前余额：<strong>${{current_balance}}</strong></p>
+<p>您的余额充值 <strong>{{recharge_amount}}</strong> 已完成。</p>
+<p>当前余额：<strong>{{current_balance}}</strong></p>
 			<p>订单号：{{order_id}}</p>`),
 		},
 	},

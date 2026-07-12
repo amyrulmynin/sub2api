@@ -27,7 +27,7 @@
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-500 dark:text-gray-400">{{ t('payment.orders.payAmount') }}</span>
-                <span class="font-medium text-gray-900 dark:text-white">{{ paymentAmountSymbol }}{{ payAmount.toFixed(2) }}</span>
+                <span class="font-medium text-gray-900 dark:text-white">{{ formatPaymentAmount(payAmount, currency) }}</span>
               </div>
             </div>
           </div>
@@ -40,7 +40,7 @@
       <div class="card overflow-hidden">
         <div class="bg-gradient-to-br from-[#635bff] to-[#4f46e5] px-6 py-5 text-center">
           <p class="text-sm font-medium text-indigo-200">{{ t('payment.actualPay') }}</p>
-          <p class="mt-1 text-3xl font-bold text-white">{{ paymentAmountSymbol }}{{ payAmount.toFixed(2) }}</p>
+          <p class="mt-1 text-3xl font-bold text-white">{{ formatPaymentAmount(payAmount, currency) }}</p>
         </div>
       </div>
       <!-- Stripe Payment Element -->
@@ -64,16 +64,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { extractI18nErrorMessage } from '@/utils/apiError'
 import { paymentAPI } from '@/api/payment'
 import { useAppStore } from '@/stores'
 import { getPaymentPopupFeatures } from '@/components/payment/providerConfig'
-import { currencySymbol } from '@/components/payment/currency'
+import { formatPaymentAmount } from '@/components/payment/currency'
 import type { Stripe, StripeElements } from '@stripe/stripe-js'
 import Icon from '@/components/icons/Icon.vue'
+import { PRODUCT_CURRENCY_SYMBOL } from '@/utils/format'
 
 // Stripe payment methods that open a popup (redirect or QR code)
 const POPUP_METHODS = new Set(['alipay', 'wechat_pay'])
@@ -103,8 +104,7 @@ const cancelling = ref(false)
 const success = ref(false)
 const ready = ref(false)
 const selectedType = ref('')
-const creditedAmountSymbol = currencySymbol('USD')
-const paymentAmountSymbol = computed(() => currencySymbol(props.currency))
+const creditedAmountSymbol = PRODUCT_CURRENCY_SYMBOL
 
 let stripeInstance: Stripe | null = null
 let elementsInstance: StripeElements | null = null

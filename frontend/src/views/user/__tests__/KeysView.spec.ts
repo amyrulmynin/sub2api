@@ -163,6 +163,9 @@ const DataTableStub = {
       </button>
       <div v-for="row in data" :key="row.id">
         <slot name="cell-name" :value="row.name" :row="row" />
+        <div data-test="usage">
+          <slot name="cell-usage" :row="row" />
+        </div>
         <div data-test="current-concurrency">
           <slot name="cell-current_concurrency" :value="row.current_concurrency" :row="row" />
         </div>
@@ -371,6 +374,21 @@ describe('user KeysView column settings', () => {
     const wrapper = await mountView()
 
     expect(wrapper.get('[data-test="current-concurrency"]').text()).toBe('3')
+  })
+
+  it('renders product usage costs in MYR', async () => {
+    getDashboardApiKeysUsage.mockResolvedValueOnce({
+      stats: {
+        1: {
+          today_actual_cost: 10,
+          total_actual_cost: 10,
+        },
+      },
+    })
+
+    const wrapper = await mountView()
+
+    expect(wrapper.get('[data-test="usage"]').text()).toContain('RM10.00')
   })
 
   it('marks current concurrency as sortable', async () => {

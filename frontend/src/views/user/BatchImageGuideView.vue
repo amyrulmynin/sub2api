@@ -773,6 +773,7 @@ import {
 } from '@/api/batchImage'
 import type { ApiKey } from '@/types'
 import type { Column } from '@/components/common/types'
+import { formatCurrency } from '@/utils/format'
 
 type BatchImageJobRow = Pick<BatchImageJob, 'id' | 'task_name' | 'parent_batch_id' | 'status' | 'model' | 'provider' | 'item_count' | 'success_count' | 'fail_count' | 'estimated_cost' | 'hold_amount' | 'actual_cost' | 'created_at' | 'downloaded_at'> & {
   api_key_id: number
@@ -2370,19 +2371,14 @@ function friendlyItemError(error: BatchImageItem['error']) {
   return error.message || error.code || '-'
 }
 
-function formatMoney(value: number | null | undefined) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) return '$0.00'
-  return `$${Number(value).toFixed(2)}`
-}
-
 function terminalZeroCost(job: Pick<BatchImageJob, 'status' | 'actual_cost'>) {
   return job.actual_cost === null && (job.status === 'failed' || job.status === 'cancelled')
 }
 
 function costLabel(job: Pick<BatchImageJob, 'status' | 'hold_amount' | 'actual_cost'>) {
-  if (job.actual_cost !== null) return formatMoney(job.actual_cost)
-  if (terminalZeroCost(job)) return formatMoney(0)
-  return `冻结 ${formatMoney(job.hold_amount)}`
+  if (job.actual_cost !== null) return formatCurrency(job.actual_cost)
+  if (terminalZeroCost(job)) return formatCurrency(0)
+  return `冻结 ${formatCurrency(job.hold_amount)}`
 }
 
 type BatchImageTextKey =

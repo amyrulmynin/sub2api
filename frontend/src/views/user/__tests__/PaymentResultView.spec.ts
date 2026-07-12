@@ -456,7 +456,7 @@ describe('PaymentResultView', () => {
       data: {
         ...orderFactory('PAID'),
         currency: 'HKD',
-        amount: 100,
+        amount: 10,
         pay_amount: 103,
         fee_rate: 3,
       },
@@ -473,6 +473,7 @@ describe('PaymentResultView', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain(formatPaymentAmount(103, 'HKD'))
+    expect(wrapper.text()).toContain('RM10.00')
   })
 
   it('normalizes aliased payment methods before rendering the label', async () => {

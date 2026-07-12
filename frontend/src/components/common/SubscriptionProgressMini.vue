@@ -183,6 +183,7 @@ import { useI18n } from 'vue-i18n'
 import Icon from '@/components/icons/Icon.vue'
 import { useSubscriptionStore } from '@/stores'
 import type { UserSubscription } from '@/types'
+import { formatCurrency } from '@/utils/format'
 
 const { t } = useI18n()
 
@@ -252,9 +253,7 @@ function getProgressWidth(used: number | undefined, limit: number | null | undef
 }
 
 function formatUsage(used: number | undefined, limit: number | null | undefined): string {
-  const usedValue = (used || 0).toFixed(2)
-  const limitValue = limit?.toFixed(2) || '∞'
-  return `$${usedValue}/$${limitValue}`
+  return `${formatCurrency(used || 0)}/${limit == null ? '∞' : formatCurrency(limit)}`
 }
 
 function formatDaysRemaining(expiresAt: string): string {

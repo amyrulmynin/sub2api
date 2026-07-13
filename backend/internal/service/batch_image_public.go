@@ -248,6 +248,19 @@ func (s *BatchImagePublicService) Submit(ctx context.Context, owner BatchImageOw
 		}
 		if parent.ParentBatchID != nil && strings.TrimSpace(*parent.ParentBatchID) != "" {
 			parentBatchID = batchImageOptionalStringPtr(*parent.ParentBatchID)
+			parent, parentErr = s.Repo.GetBatchImageJobByBatchIDForOwner(ctx, owner.UserID, owner.APIKeyID, *parentBatchID)
+			if parentErr != nil {
+				return nil, parentErr
+			}
+		}
+		parentCurrency := "MYR"
+		if strings.TrimSpace(parent.Currency) != "" {
+			if currency, currencyErr := payment.NormalizePaymentCurrency(parent.Currency); currencyErr == nil {
+				parentCurrency = currency
+			}
+		}
+		if parentCurrency != "MYR" {
+			parentBatchID = nil
 		}
 	}
 	batchID, err := NewBatchImageID()

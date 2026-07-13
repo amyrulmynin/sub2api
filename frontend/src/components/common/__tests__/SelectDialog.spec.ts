@@ -98,6 +98,35 @@ describe('Select in BaseDialog', () => {
     expect(wrapper.findComponent(BaseDialog).emitted('close')).toBeUndefined()
   })
 
+  it('closes a non-searchable owned Select before its dialog on Escape', async () => {
+    const wrapper = mount(defineComponent({
+      components: { BaseDialog, CommonSelect },
+      setup: () => ({ options: options.slice(0, 5), value: ref(null) }),
+      template: `
+        <BaseDialog :show="true" title="Choose" :show-close-button="false">
+          <CommonSelect v-model="value" :options="options" />
+        </BaseDialog>
+      `,
+    }), {
+      attachTo: document.body,
+      global: { stubs: { Icon: true } },
+    })
+    await flushPromises()
+
+    const trigger = document.querySelector<HTMLButtonElement>('.select-trigger')
+    if (!trigger) throw new Error('Expected non-searchable Select trigger')
+    trigger.click()
+    await flushPromises()
+    expect(document.querySelector('.select-search-input')).toBeNull()
+    expect(document.activeElement).toBe(trigger)
+
+    trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }))
+    await flushPromises()
+
+    expect(trigger.getAttribute('aria-expanded')).toBe('false')
+    expect(wrapper.findComponent(BaseDialog).emitted('close')).toBeUndefined()
+  })
+
   it('closes an outer Select while an inner dialog owns interaction', async () => {
     const showInner = ref(false)
     const value = ref<number | null>(null)

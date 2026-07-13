@@ -59,6 +59,7 @@ interface DialogStackEntry {
   focusDialog: () => void
   contains: (element: HTMLElement) => boolean
   getOverlay: () => HTMLElement | null
+  getEscapePortal: () => HTMLElement | undefined
   handleTab: (event: KeyboardEvent) => void
   setVisualOwner: (isOwner: boolean) => void
 }
@@ -94,13 +95,10 @@ function handleStackKeydown(event: KeyboardEvent) {
     event.stopPropagation()
     // Other capture listeners can share document; immediate stop keeps Escape inside top modal.
     event.stopImmediatePropagation()
-    const target = event.target
-    if (target instanceof HTMLElement) {
-      const portal = target.closest<HTMLElement>('[data-dialog-escape-owner]')
-      if (portal && top.contains(portal)) {
-        portal.dispatchEvent(new Event('dialog-escape'))
-        return
-      }
+    const portal = top.getEscapePortal()
+    if (portal) {
+      portal.dispatchEvent(new Event('dialog-escape'))
+      return
     }
     if (top.closeOnEscape()) top.emitClose()
     return
@@ -294,6 +292,9 @@ function registerDialog() {
     contains: element => dialogRef.value?.contains(element) === true
       || Array.from(ownedPortals).some(portal => portal.isConnected && portal.contains(element)),
     getOverlay: () => overlayRef.value,
+    getEscapePortal: () => Array.from(ownedPortals).find(portal =>
+      portal.isConnected && portal.matches('[data-dialog-escape-owner]')
+      && !portal.hasAttribute('inert') && portal.getAttribute('aria-hidden') !== 'true'),
     handleTab,
     setVisualOwner: isOwner => {
       isVisualOwner.value = isOwner

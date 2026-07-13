@@ -409,6 +409,7 @@ func (r *fakeBatchImageRepository) CreateBatchImageJob(_ context.Context, params
 		Provider:                params.Provider,
 		Model:                   params.Model,
 		TaskName:                params.TaskName,
+		ParentBatchID:           params.ParentBatchID,
 		ProviderJobName:         params.ProviderJobName,
 		ItemCount:               params.ItemCount,
 		EstimatedCost:           params.EstimatedCost,

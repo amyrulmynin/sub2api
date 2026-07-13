@@ -64,6 +64,40 @@ func TestBatchImagePublicService_Submit(t *testing.T) {
 		require.InDelta(t, 0.15, job.HoldUnitPrice, 1e-12)
 	})
 
+	t.Run("uses root currency to isolate legacy retries", func(t *testing.T) {
+		tests := []struct {
+			name              string
+			rootCurrency      string
+			childCurrency     string
+			wantParentBatchID *string
+		}{
+			{name: "legacy USD root creates standalone MYR retry", rootCurrency: "USD", childCurrency: "MYR"},
+			{name: "MYR root retains normalized parent", rootCurrency: "MYR", childCurrency: "USD", wantParentBatchID: batchImageStringPtr("root")},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				svc, repo, _, _, _ := newTestBatchImagePublicService(true)
+				apiKeyID := int64(22)
+				repo.jobs["root"] = &BatchImageJob{
+					BatchID: "root", UserID: 11, APIKeyID: &apiKeyID, Currency: tt.rootCurrency,
+				}
+				repo.jobs["child"] = &BatchImageJob{
+					BatchID: "child", UserID: 11, APIKeyID: &apiKeyID, Currency: tt.childCurrency,
+					ParentBatchID: batchImageStringPtr("root"),
+				}
+				req := validBatchImageSubmitRequest()
+				req.ParentBatchID = "child"
+
+				got, err := svc.Submit(ctx, testBatchImageOwner(), req, "")
+				require.NoError(t, err)
+				job := repo.jobs[got.ID]
+				require.Equal(t, "MYR", job.Currency)
+				require.Equal(t, tt.wantParentBatchID, job.ParentBatchID)
+			})
+		}
+	})
+
 	t.Run("combines user group image rate account rate discount and hold margin", func(t *testing.T) {
 		svc, repo, _, _, _ := newTestBatchImagePublicService(true)
 		groupID := int64(7)

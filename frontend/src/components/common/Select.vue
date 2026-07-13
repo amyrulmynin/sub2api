@@ -382,6 +382,7 @@ watch(isOpen, (open) => {
     window.addEventListener('scroll', updateTriggerRect, { capture: true, passive: true })
     window.addEventListener('resize', calculateDropdownPosition)
   } else {
+    dropdownRef.value?.removeAttribute('data-dialog-escape-owner')
     searchQuery.value = ''
     focusedIndex.value = -1
     window.removeEventListener('scroll', updateTriggerRect, { capture: true })

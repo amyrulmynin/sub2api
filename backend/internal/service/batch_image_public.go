@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
+	"github.com/Wei-Shaw/sub2api/internal/payment"
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 	"go.uber.org/zap"
@@ -119,6 +120,7 @@ type BatchImagePublicBatch struct {
 	EstimatedCost   float64  `json:"estimated_cost"`
 	HoldAmount      float64  `json:"hold_amount"`
 	ActualCost      *float64 `json:"actual_cost"`
+	Currency        string   `json:"currency"`
 	CreatedAt       int64    `json:"created_at"`
 	SubmittedAt     *int64   `json:"submitted_at"`
 	SettledAt       *int64   `json:"settled_at"`
@@ -1159,6 +1161,12 @@ func BatchImageJobToPublic(job *BatchImageJob) *BatchImagePublicBatch {
 	if job.HoldAmount != nil {
 		holdAmount = *job.HoldAmount
 	}
+	currency := "MYR"
+	if strings.TrimSpace(job.Currency) != "" {
+		if normalized, err := payment.NormalizePaymentCurrency(job.Currency); err == nil {
+			currency = normalized
+		}
+	}
 	return &BatchImagePublicBatch{
 		ID:              job.BatchID,
 		Object:          "image.batch",
@@ -1173,6 +1181,7 @@ func BatchImageJobToPublic(job *BatchImageJob) *BatchImagePublicBatch {
 		EstimatedCost:   job.EstimatedCost,
 		HoldAmount:      holdAmount,
 		ActualCost:      job.ActualCost,
+		Currency:        currency,
 		CreatedAt:       job.CreatedAt.Unix(),
 		SubmittedAt:     batchImageUnixPtr(job.SubmittedAt),
 		SettledAt:       batchImageUnixPtr(job.SettledAt),

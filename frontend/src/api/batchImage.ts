@@ -53,6 +53,7 @@ export interface BatchImageJob {
   estimated_cost: number
   hold_amount: number
   actual_cost: number | null
+  currency: string
   created_at: number
   submitted_at: number | null
   settled_at: number | null

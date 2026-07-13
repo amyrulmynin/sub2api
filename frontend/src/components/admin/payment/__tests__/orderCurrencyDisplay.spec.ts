@@ -151,7 +151,7 @@ describe('admin order currency display', () => {
     expect(text).toContain('RM100.00')
   })
 
-  it('shows equal-numeric USD settlement and MYR credit in detail and admin table', () => {
+  it('shows equal-numeric foreign settlement and MYR credit in detail and both tables', () => {
     const order = orderFactory({ currency: 'USD', amount: 100, pay_amount: 100, fee_rate: 0, refund_amount: 0 })
     const detail = mount(AdminOrderDetail, {
       props: { show: true, order },
@@ -161,10 +161,20 @@ describe('admin order currency display', () => {
       props: { orders: [order], loading: false, page: 1, pageSize: 20, total: 1 },
       global: { stubs: { DataTable: DataTableStub, Icon: true, Pagination: true, Select: true } },
     })
+    const sharedTable = mount(OrderTable, {
+      props: {
+        orders: [order, orderFactory({ id: 2, currency: 'CNY', amount: 100, pay_amount: 100, fee_rate: 0 })],
+        loading: false,
+      },
+      global: { stubs: { DataTable: DataTableStub, OrderStatusBadge: true } },
+    })
 
     expect(detail.text()).toContain('$100.00')
     expect(detail.text()).toContain('payment.orders.creditedAmountRM100.00')
     expect(table.text()).toContain('$100.00')
     expect(table.text()).toContain('payment.orders.creditedAmount: RM100.00')
+    expect(sharedTable.text()).toContain('$100.00')
+    expect(sharedTable.text()).toContain('¥100.00')
+    expect(sharedTable.text().match(/payment\.orders\.creditedAmount: RM100\.00/g)).toHaveLength(2)
   })
 })

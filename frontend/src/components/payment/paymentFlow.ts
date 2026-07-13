@@ -301,7 +301,7 @@ export function readPaymentRecoverySnapshot(
 
     const now = options.now ?? Date.now()
     const expiresAt = Date.parse(parsed.expiresAt)
-    if (Number.isFinite(expiresAt) && expiresAt <= now) {
+    if (!Number.isFinite(expiresAt) || expiresAt <= now) {
       return null
     }
     if (options.resumeToken && parsed.resumeToken !== options.resumeToken) {

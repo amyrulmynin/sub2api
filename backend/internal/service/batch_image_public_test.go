@@ -462,6 +462,28 @@ func TestBatchImagePublicService_List(t *testing.T) {
 	require.False(t, got.HasMore)
 }
 
+func TestBatchImageJobToPublicNormalizesPersistedCurrency(t *testing.T) {
+	tests := []struct {
+		name     string
+		currency string
+		want     string
+	}{
+		{name: "normalizes persisted currency", currency: " usd ", want: "USD"},
+		{name: "defaults empty legacy currency", currency: "", want: "MYR"},
+		{name: "defaults invalid legacy currency", currency: "US1", want: "MYR"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := BatchImageJobToPublic(&BatchImageJob{Currency: tt.currency, CreatedAt: time.Unix(1, 0)})
+			require.Equal(t, tt.want, got.Currency)
+			body, err := json.Marshal(got)
+			require.NoError(t, err)
+			require.Contains(t, string(body), `"currency":"`+tt.want+`"`)
+		})
+	}
+}
+
 func TestBatchImagePublicService_ListModels(t *testing.T) {
 	ctx := context.Background()
 

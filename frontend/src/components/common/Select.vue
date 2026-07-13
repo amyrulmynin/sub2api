@@ -54,9 +54,11 @@
           :style="dropdownStyle"
           :inert="!ownerActive || undefined"
           :aria-hidden="ownerActive ? undefined : 'true'"
+          data-dialog-escape-owner
           role="listbox"
           @click.stop
           @mousedown.stop
+          @dialog-escape="closeOnEscape"
           @keydown="onDropdownKeyDown"
         >
           <!-- Search input -->
@@ -354,6 +356,11 @@ const toggle = () => {
   isOpen.value = !isOpen.value
 }
 
+const closeOnEscape = () => {
+  isOpen.value = false
+  triggerRef.value?.focus()
+}
+
 watch(isOpen, (open) => {
   if (open) {
     calculateDropdownPosition()
@@ -425,8 +432,7 @@ const onDropdownKeyDown = (e: KeyboardEvent) => {
       break
     case 'Escape':
       e.preventDefault()
-      isOpen.value = false
-      triggerRef.value?.focus()
+      closeOnEscape()
       break
     case 'Tab':
       isOpen.value = false

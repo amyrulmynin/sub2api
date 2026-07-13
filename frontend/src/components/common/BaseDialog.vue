@@ -8,7 +8,9 @@
         :style="zIndexStyle"
         :aria-labelledby="dialogId"
         role="dialog"
-        aria-modal="true"
+        :aria-modal="isVisualOwner ? 'true' : undefined"
+        :aria-hidden="isVisualOwner ? undefined : 'true'"
+        :inert="!isVisualOwner || undefined"
         @click.self="handleClose"
       >
         <!-- Modal panel -->
@@ -92,6 +94,14 @@ function handleStackKeydown(event: KeyboardEvent) {
     event.stopPropagation()
     // Other capture listeners can share document; immediate stop keeps Escape inside top modal.
     event.stopImmediatePropagation()
+    const target = event.target
+    if (target instanceof HTMLElement) {
+      const portal = target.closest<HTMLElement>('[data-dialog-escape-owner]')
+      if (portal && top.contains(portal)) {
+        portal.dispatchEvent(new Event('dialog-escape'))
+        return
+      }
+    }
     if (top.closeOnEscape()) top.emitClose()
     return
   }
@@ -285,7 +295,19 @@ function registerDialog() {
       || Array.from(ownedPortals).some(portal => portal.isConnected && portal.contains(element)),
     getOverlay: () => overlayRef.value,
     handleTab,
-    setVisualOwner: isOwner => { isVisualOwner.value = isOwner },
+    setVisualOwner: isOwner => {
+      isVisualOwner.value = isOwner
+      const overlay = overlayRef.value
+      if (!overlay) return
+      overlay.toggleAttribute('inert', !isOwner)
+      if (isOwner) {
+        overlay.removeAttribute('aria-hidden')
+        overlay.setAttribute('aria-modal', 'true')
+      } else {
+        overlay.setAttribute('aria-hidden', 'true')
+        overlay.removeAttribute('aria-modal')
+      }
+    },
   }
   dialogStack.push(stackEntry)
   syncDialogOwnership()

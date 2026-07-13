@@ -771,11 +771,11 @@ import {
   type BatchImageStatus,
   type BatchImageSubmitItem,
 } from '@/api/batchImage'
+import { batchImageCostLabel } from './batchImageCost'
 import type { ApiKey } from '@/types'
 import type { Column } from '@/components/common/types'
-import { formatCurrency } from '@/utils/format'
 
-type BatchImageJobRow = Pick<BatchImageJob, 'id' | 'task_name' | 'parent_batch_id' | 'status' | 'model' | 'provider' | 'item_count' | 'success_count' | 'fail_count' | 'estimated_cost' | 'hold_amount' | 'actual_cost' | 'created_at' | 'downloaded_at'> & {
+type BatchImageJobRow = Pick<BatchImageJob, 'id' | 'task_name' | 'parent_batch_id' | 'status' | 'model' | 'provider' | 'item_count' | 'success_count' | 'fail_count' | 'estimated_cost' | 'hold_amount' | 'actual_cost' | 'currency' | 'created_at' | 'downloaded_at'> & {
   api_key_id: number
   api_key_name: string
   child_count: number
@@ -1325,6 +1325,7 @@ function toJobRow(job: BatchImageJob, key = selectedApiKey.value): BatchImageJob
     estimated_cost: job.estimated_cost,
     hold_amount: job.hold_amount,
     actual_cost: job.actual_cost,
+    currency: job.currency,
     created_at: job.created_at,
     downloaded_at: job.downloaded_at,
     api_key_id: key?.id || 0,
@@ -2371,14 +2372,8 @@ function friendlyItemError(error: BatchImageItem['error']) {
   return error.message || error.code || '-'
 }
 
-function terminalZeroCost(job: Pick<BatchImageJob, 'status' | 'actual_cost'>) {
-  return job.actual_cost === null && (job.status === 'failed' || job.status === 'cancelled')
-}
-
-function costLabel(job: Pick<BatchImageJob, 'status' | 'hold_amount' | 'actual_cost'>) {
-  if (job.actual_cost !== null) return formatCurrency(job.actual_cost)
-  if (terminalZeroCost(job)) return formatCurrency(0)
-  return `冻结 ${formatCurrency(job.hold_amount)}`
+function costLabel(job: Pick<BatchImageJob, 'status' | 'hold_amount' | 'actual_cost' | 'currency'>) {
+  return batchImageCostLabel(job)
 }
 
 type BatchImageTextKey =

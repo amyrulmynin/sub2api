@@ -18,8 +18,8 @@
         <span v-if="row.fee_rate > 0" class="ml-1 text-xs text-gray-400" :title="t('payment.orders.fee') + ': ' + row.fee_rate + '%'">
           ({{ t('payment.orders.fee') }} {{ row.fee_rate }}%)
         </span>
-        <div v-if="row.amount !== row.pay_amount" class="text-xs text-gray-500">
-          {{ t('payment.orders.creditedAmount') }}: {{ creditedAmountSymbol }}{{ row.amount.toFixed(2) }}
+        <div v-if="row.amount !== row.pay_amount || normalizePaymentCurrency(row.currency) !== 'MYR'" class="text-xs text-gray-500">
+          {{ t('payment.orders.creditedAmount') }}: {{ formatCurrency(row.amount) }}
         </div>
       </div>
     </template>
@@ -45,8 +45,8 @@ import type { PaymentOrder } from '@/types/payment'
 import type { Column } from '@/components/common/types'
 import DataTable from '@/components/common/DataTable.vue'
 import OrderStatusBadge from '@/components/payment/OrderStatusBadge.vue'
-import { formatPaymentAmount } from '@/components/payment/currency'
-import { PRODUCT_CURRENCY_SYMBOL } from '@/utils/format'
+import { formatPaymentAmount, normalizePaymentCurrency } from '@/components/payment/currency'
+import { formatCurrency } from '@/utils/format'
 
 const { t } = useI18n()
 
@@ -57,8 +57,6 @@ const props = defineProps<{
 }>()
 
 function formatDate(dateStr: string) { return new Date(dateStr).toLocaleString() }
-
-const creditedAmountSymbol = PRODUCT_CURRENCY_SYMBOL
 
 const columns = computed((): Column[] => {
   const cols: Column[] = [

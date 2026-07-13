@@ -133,16 +133,25 @@ func (m *MudahPay) CreatePayment(ctx context.Context, req payment.CreatePaymentR
 	}
 
 	baseSen := resp.Data.BaseAmount
+	if baseSen > 0 && baseSen != sen {
+		return nil, fmt.Errorf("mudahpay create transaction returned unexpected base_amount: %d", baseSen)
+	}
 	if baseSen <= 0 {
 		baseSen = sen
 	}
 	finalSen := resp.Data.UniqueAmount
+	if finalSen > 0 && (finalSen < sen+1 || finalSen > sen+99) {
+		return nil, fmt.Errorf("mudahpay create transaction returned unexpected unique_amount: %d", finalSen)
+	}
 	if finalSen <= 0 {
 		finalSen = sen
 	}
 	qr := strings.TrimSpace(resp.Data.QRDN)
 	if qr == "" {
 		qr = strings.TrimSpace(resp.Data.QRIS)
+	}
+	if qr == "" {
+		return nil, fmt.Errorf("mudahpay create transaction returned no QR code")
 	}
 	return &payment.CreatePaymentResponse{
 		TradeNo:    resp.Data.ID,

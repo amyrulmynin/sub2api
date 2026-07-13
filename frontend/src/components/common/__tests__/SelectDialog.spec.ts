@@ -71,6 +71,33 @@ describe('Select in BaseDialog', () => {
     expect(document.activeElement).toBe(trigger)
   })
 
+  it('closes only the owned Select portal on Escape', async () => {
+    const wrapper = mount(defineComponent({
+      components: { BaseDialog, CommonSelect },
+      setup: () => ({ options, value: ref(null) }),
+      template: `
+        <BaseDialog :show="true" title="Choose" :show-close-button="false">
+          <CommonSelect v-model="value" :options="options" />
+        </BaseDialog>
+      `,
+    }), {
+      attachTo: document.body,
+      global: { stubs: { Icon: true } },
+    })
+    await flushPromises()
+
+    document.querySelector<HTMLButtonElement>('.select-trigger')?.click()
+    await flushPromises()
+    const search = document.querySelector<HTMLInputElement>('.select-search-input')
+    if (!search) throw new Error('Expected open Select search input')
+
+    search.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }))
+    await flushPromises()
+
+    expect(document.querySelector('.select-trigger')?.getAttribute('aria-expanded')).toBe('false')
+    expect(wrapper.findComponent(BaseDialog).emitted('close')).toBeUndefined()
+  })
+
   it('closes an outer Select while an inner dialog owns interaction', async () => {
     const showInner = ref(false)
     const value = ref<number | null>(null)

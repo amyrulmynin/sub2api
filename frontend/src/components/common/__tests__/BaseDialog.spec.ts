@@ -132,6 +132,41 @@ describe('BaseDialog', () => {
     outer.unmount()
   })
 
+  it('makes only the visual owner modal and hides stacked non-owners', async () => {
+    const low = mount(BaseDialog, {
+      props: { show: true, title: 'Low', showCloseButton: false, zIndex: 40 },
+      slots: { default: '<button data-test="aria-low">Low action</button>' },
+      attachTo: document.body,
+    })
+    const high = mount(BaseDialog, {
+      props: { show: true, title: 'High', showCloseButton: false, zIndex: 80 },
+      slots: { default: '<button data-test="aria-high">High action</button>' },
+      attachTo: document.body,
+    })
+    await flushPromises()
+
+    const lowOverlay = document.querySelector<HTMLElement>('[data-test="aria-low"]')?.closest('.modal-overlay')
+    const highOverlay = document.querySelector<HTMLElement>('[data-test="aria-high"]')?.closest('.modal-overlay')
+    if (!lowOverlay || !highOverlay) throw new Error('Expected stacked overlays')
+    expect({
+      inert: lowOverlay.hasAttribute('inert'),
+      ariaHidden: lowOverlay.getAttribute('aria-hidden'),
+      ariaModal: lowOverlay.getAttribute('aria-modal'),
+    }).toEqual({ inert: true, ariaHidden: 'true', ariaModal: null })
+    expect({
+      inert: highOverlay.hasAttribute('inert'),
+      ariaHidden: highOverlay.getAttribute('aria-hidden'),
+      ariaModal: highOverlay.getAttribute('aria-modal'),
+    }).toEqual({ inert: false, ariaHidden: null, ariaModal: 'true' })
+
+    high.unmount()
+    await flushPromises()
+    expect(lowOverlay.hasAttribute('inert')).toBe(false)
+    expect(lowOverlay.getAttribute('aria-hidden')).toBeNull()
+    expect(lowOverlay.getAttribute('aria-modal')).toBe('true')
+    low.unmount()
+  })
+
   it('cleans up visible stacked dialogs on unmount without stealing newer focus', async () => {
     const outsideButton = document.createElement('button')
     document.body.appendChild(outsideButton)

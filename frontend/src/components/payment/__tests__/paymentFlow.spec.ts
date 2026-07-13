@@ -381,6 +381,15 @@ describe('readPaymentRecoverySnapshot', () => {
     createdAt: Date.UTC(2099, 0, 1, 0, 0, 0),
   }
 
+  it.each(['', 'not-a-date'])('rejects invalid expiry %j', (expiresAt) => {
+    expect(readPaymentRecoverySnapshot(JSON.stringify({
+      ...validSnapshot,
+      expiresAt,
+    }), {
+      now: Date.UTC(2099, 0, 1, 0, 1, 0),
+    })).toBeNull()
+  })
+
   it.each(['orderId', 'amount', 'baseAmount', 'payAmount', 'createdAt'])(
     'rejects exponent-overflow %s values',
     (field) => {

@@ -31,6 +31,8 @@ services:
       JWT_SECRET: "${JWT_SECRET}"
       JWT_EXPIRE_HOUR: "24"
       TOTP_ENCRYPTION_KEY: "${TOTP_ENCRYPTION_KEY}"
+      CORS_ALLOWED_ORIGINS: "null,https://themyrul.my.id"
+      CORS_ALLOW_CREDENTIALS: "false"
       TZ: "Asia/Kuala_Lumpur"
       SETUP_MIGRATION_TIMEOUT_SECONDS: "180"
     volumes:
